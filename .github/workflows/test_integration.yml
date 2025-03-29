@@ -1,0 +1,38 @@
+name: go-test-integration
+
+on:
+  push:
+
+permissions: write-all
+
+env:
+  GO_VERSION: '1.22'
+  COV_FILE: 'coverage.out'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Golang
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Check Go version
+        run: go version
+      - name: Run Test
+        run: |
+          go test -v ./... -coverpkg=./mypkg -covermode=count -coverprofile=${{ env.COV_FILE }}
+          go tool cover -func=${{ env.COV_FILE }} -o=${{ env.COV_FILE }}
+      - name: Go Coverage Badge  # Pass the `coverage.out` output to this action
+        uses: tj-actions/coverage-badge-go@v2
+        with:
+          filename: ${{ env.COV_FILE }}
+      - name: Push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md
+          git log -1
+          git diff --cached --quiet || (git commit -m "chore: Updated coverage badge." && git push origin HEAD)
