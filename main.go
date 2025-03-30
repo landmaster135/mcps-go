@@ -7,6 +7,7 @@ import (
 	arith_calc "example.com/mcps-go/arith_calc"
 	brave_search "example.com/mcps-go/brave-search"
 	datetime_calc "example.com/mcps-go/datetime_calc"
+	filesystem "example.com/mcps-go/filesystem"
 	http_request "example.com/mcps-go/http_request"
 	mypkg "example.com/mcps-go/mypkg"
 	timezone "example.com/mcps-go/timezone"
@@ -37,12 +38,13 @@ func main() {
 		brave_search.BuildBraveSearchServer()
 	case "timezone":
 		timezone.BuildTimezoneServer()
+	case "filesystem":
+		filesystem.BuildFileSystemServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)
 	}
 	mypkg.OutLog("main: built mcp server!")
-
 
 	// var c datetime_calc.DatetimeCalculator
 	// result := c.AddDatetime(2023, 12, 15, 10, 30, 45, 0, 1, 0, 0, 0, 0)
