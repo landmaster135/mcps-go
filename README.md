@@ -3,8 +3,16 @@
 ![Coverage](https://img.shields.io/badge/Coverage-42.3%25-yellow)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-# Usage
-- Go 1.22.2
+# Execution
+
+## Requirements
+Nothing. A binary file only.
+
+# Development
+
+## Requirements
+- Go 1.23.5 or later
+- [mcp-go](https://github.com/mark3labs/mcp-go)
 
 ## Build
 ```bash
@@ -15,10 +23,9 @@ go build main.go
 ```bash
 docker build -t mcps-go .
 ```
-
+Check MCP server
 ```bash
-
-docker run -i --rm -e BRAVE_API_KEY=$BRAVE_API_KEY --name my-mcps-go -t mcps-go brave_search
+docker run -i --rm -e BRAVE_API_KEY=$BRAVE_API_KEY mcps-go brave_search
 ```
 
 ## Cline settings
@@ -49,14 +56,26 @@ Add the following into `cline_mcp_setting.json`
       ],
       "disabled": false,
       "autoApprove": []
+    },
+    "brave_web_search": {
+      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "args": [
+        "brave_web_search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "YOUR_BRAVE_API_KEY"
+      },
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }
 
+
 ```
 
 # Contributing
-Contributions to the project are welcome. Please fork the repository and submit a pull request with your changes.
+Welcome.
 
 # License
 MIT License

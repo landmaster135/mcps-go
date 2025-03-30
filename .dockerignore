@@ -35,6 +35,8 @@ Dockerfile
 *.db
 data/*
 *.log
+env.yml
+env.yaml
 
 ### go ###
 */*_test.go

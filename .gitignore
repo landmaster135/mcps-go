@@ -45,6 +45,8 @@ go.work.sum
 ### setting files ###
 .editorconfig
 target*
+env.yml
+env.yaml
 
 ### Cloud Functions ###
 .gcloudignore

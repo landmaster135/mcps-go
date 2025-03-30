@@ -150,7 +150,7 @@ func performWebSearch(query string, count int, offset int) (string, error) {
 
 	// ヘッダーの設定
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Accept-Encoding", "gzip")
+	// gzipヘッダーを削除してJSONパースエラーを回避
 	req.Header.Add("X-Subscription-Token", apiKey)
 
 	// リクエストの実行
@@ -163,7 +163,7 @@ func performWebSearch(query string, count int, offset int) (string, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("Brave API error: %d %s\n%s", resp.StatusCode, resp.Status, string(body))
+		return "", fmt.Errorf("error of Brave API: %d %s\n%s", resp.StatusCode, resp.Status, string(body))
 	}
 
 	// レスポンスの解析
@@ -218,7 +218,7 @@ func performLocalSearch(query string, count int) (string, error) {
 
 	// ヘッダーの設定
 	webReq.Header.Add("Accept", "application/json")
-	webReq.Header.Add("Accept-Encoding", "gzip")
+	// gzipヘッダーを削除してJSONパースエラーを回避
 	webReq.Header.Add("X-Subscription-Token", apiKey)
 
 	// リクエストの実行
@@ -231,7 +231,7 @@ func performLocalSearch(query string, count int) (string, error) {
 
 	if webResp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(webResp.Body)
-		return "", fmt.Errorf("Brave API error: %d %s\n%s", webResp.StatusCode, webResp.Status, string(body))
+		return "", fmt.Errorf("error of Brave API: %d %s\n%s", webResp.StatusCode, webResp.Status, string(body))
 	}
 
 	// レスポンスの解析
@@ -328,7 +328,7 @@ func getPoisData(ids []string) (BravePoiResponse, error) {
 
 	// ヘッダーの設定
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Accept-Encoding", "gzip")
+	// gzipヘッダーを削除してJSONパースエラーを回避
 	req.Header.Add("X-Subscription-Token", apiKey)
 
 	// リクエストの実行
@@ -341,7 +341,7 @@ func getPoisData(ids []string) (BravePoiResponse, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return BravePoiResponse{}, fmt.Errorf("brave API error: %d %s\n%s", resp.StatusCode, resp.Status, string(body))
+		return BravePoiResponse{}, fmt.Errorf("error of Brave API: %d %s\n%s", resp.StatusCode, resp.Status, string(body))
 	}
 
 	// レスポンスの解析
@@ -387,7 +387,7 @@ func getDescriptionsData(ids []string) (BraveDescription, error) {
 
 	// ヘッダーの設定
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Accept-Encoding", "gzip")
+	// gzipヘッダーを削除してJSONパースエラーを回避
 	req.Header.Add("X-Subscription-Token", apiKey)
 
 	// リクエストの実行
@@ -400,7 +400,7 @@ func getDescriptionsData(ids []string) (BraveDescription, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return BraveDescription{}, fmt.Errorf("Brave API error: %d %s\n%s", resp.StatusCode, resp.Status, string(body))
+		return BraveDescription{}, fmt.Errorf("error of Brave API: %d %s\n%s", resp.StatusCode, resp.Status, string(body))
 	}
 
 	// レスポンスの解析
