@@ -5,12 +5,13 @@ import (
 	"os"
 
 	arith_calc "example.com/mcps-go/arith_calc"
-	brave_search "example.com/mcps-go/brave-search"
+	brave_search "example.com/mcps-go/brave_search"
 	datetime_calc "example.com/mcps-go/datetime_calc"
 	filesystem "example.com/mcps-go/filesystem"
 	http_request "example.com/mcps-go/http_request"
 	mypkg "example.com/mcps-go/mypkg"
 	timezone "example.com/mcps-go/timezone"
+	youtube_transcript "example.com/mcps-go/youtube_transcript"
 )
 
 func main() {
@@ -40,6 +41,8 @@ func main() {
 		timezone.BuildTimezoneServer()
 	case "filesystem":
 		filesystem.BuildFileSystemServer()
+	case "youtube_transcript":
+		youtube_transcript.BuildYouTubeTranscriptServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)

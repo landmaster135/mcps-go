@@ -207,7 +207,7 @@ func BuildYouTubeTranscriptServer() {
 	)
 
 	// get_transcript ツールの設定
-	tool := mcp.NewTool("get_transcript",
+	tool := mcp.NewTool("get_youtube_transcript",
 		mcp.WithDescription("Extract transcript from a YouTube video URL or ID"),
 		mcp.WithString("url",
 			mcp.Required(),
