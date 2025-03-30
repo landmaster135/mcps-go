@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "arithmetic_calculator": {
-      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "command": "/home/nov/mcps-go/mcps-go",
       "args": [
         "arith_calc"
       ],
@@ -9,7 +9,7 @@
       "autoApprove": []
     },
     "datetime_calculator": {
-      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "command": "/home/nov/mcps-go/mcps-go",
       "args": [
         "datetime_calc"
       ],
@@ -17,7 +17,7 @@
       "autoApprove": []
     },
     "http_request": {
-      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "command": "/home/nov/mcps-go/mcps-go",
       "args": [
         "http_request"
       ],
@@ -25,7 +25,7 @@
       "autoApprove": []
     },
     "brave_web_search": {
-      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "command": "/home/nov/mcps-go/mcps-go",
       "args": [
         "brave_web_search"
       ],
