@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	mypkg "example.com/mymodule/mypkg"
+	mypkg "example.com/mcps-go/mypkg"
 	"github.com/stretchr/testify/assert"
 )
 

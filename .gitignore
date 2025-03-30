@@ -50,3 +50,7 @@ target*
 .gcloudignore
 mypkg/go.mod
 mypkg/go.sum
+
+
+### module file ###
+mcps-go
