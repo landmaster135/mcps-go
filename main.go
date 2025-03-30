@@ -5,6 +5,7 @@ import (
 	"os"
 
 	arith_calc "example.com/mcps-go/arith_calc"
+	brave_search "example.com/mcps-go/brave-search"
 	datetime_calc "example.com/mcps-go/datetime_calc"
 	http_request "example.com/mcps-go/http_request"
 	mypkg "example.com/mcps-go/mypkg"
@@ -31,6 +32,8 @@ func main() {
 		datetime_calc.BuildTimeCalculatorServer()
 	case "http_request":
 		http_request.BuildMcpServer()
+	case "brave_search":
+		brave_search.BuildBraveSearchServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)
