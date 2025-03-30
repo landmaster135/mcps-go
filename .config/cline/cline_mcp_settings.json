@@ -34,6 +34,14 @@
       },
       "disabled": false,
       "autoApprove": []
+    },
+    "get-current-timezone": {
+      "command": "/home/nov/mcps-go/mcps-go",
+      "args": [
+        "timezone"
+      ],
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }
