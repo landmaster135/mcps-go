@@ -81,6 +81,11 @@ type TimezoneService struct {
 
 // GetCurrentTime は指定されたタイムゾーンの現在時刻を取得するメソッドです
 func (ts *TimezoneService) GetCurrentTime(timezone string) (string, error) {
+	// 空のタイムゾーンをチェック
+	if timezone == "" {
+		return "", fmt.Errorf("empty timezone is not allowed")
+	}
+
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
 		return "", fmt.Errorf("invalid timezone: %s", timezone)
@@ -92,6 +97,11 @@ func (ts *TimezoneService) GetCurrentTime(timezone string) (string, error) {
 
 // IsValidTimezone はタイムゾーンが有効かどうかを確認するメソッドです
 func (ts *TimezoneService) IsValidTimezone(timezone string) bool {
+	// 空のタイムゾーンは無効とする
+	if timezone == "" {
+		return false
+	}
+
 	_, err := time.LoadLocation(timezone)
 	return err == nil
 }
