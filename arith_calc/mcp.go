@@ -16,7 +16,7 @@ func BuildCalculatorServer() {
 		server.WithResourceCapabilities(true, true),
 		server.WithLogging(),
 	)
-	calculatorTool := mcp.NewTool("calculate",
+	tool := mcp.NewTool("calculate",
 		mcp.WithDescription("Perform basic arithmetic calculations"),
 		mcp.WithString("operation",
 			mcp.Required(),
@@ -32,7 +32,7 @@ func BuildCalculatorServer() {
 			mcp.Description("Second number"),
 		),
 	)
-	s.AddTool(calculatorTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		op := request.Params.Arguments["operation"].(string)
 		x := request.Params.Arguments["x"].(float64)
 		y := request.Params.Arguments["y"].(float64)
