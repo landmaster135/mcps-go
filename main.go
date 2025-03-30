@@ -9,7 +9,7 @@ import (
 	datetime_calc "example.com/mcps-go/datetime_calc"
 	filesystem "example.com/mcps-go/filesystem"
 	http_request "example.com/mcps-go/http_request"
-	mypkg "example.com/mcps-go/mypkg"
+	util "example.com/mcps-go/util"
 	timezone "example.com/mcps-go/timezone"
 	youtube_transcript "example.com/mcps-go/youtube_transcript"
 )
@@ -26,7 +26,7 @@ func main() {
 		fmt.Printf("argument %d: %s\n", i+1, arg)
 	}
 
-	mypkg.OutLog("main: building mcp server...")
+	util.OutLog("main: building mcp server...")
 	a1 := args[1]
 	switch a1 {
 	case "arith_calc":
@@ -47,7 +47,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)
 	}
-	mypkg.OutLog("main: built mcp server!")
+	util.OutLog("main: built mcp server!")
 
 	// var c datetime_calc.DatetimeCalculator
 	// result := c.AddDatetime(2023, 12, 15, 10, 30, 45, 0, 1, 0, 0, 0, 0)
