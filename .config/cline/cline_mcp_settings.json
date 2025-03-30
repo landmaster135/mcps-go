@@ -42,6 +42,22 @@
       ],
       "disabled": false,
       "autoApprove": []
+    },
+    "filesystem": {
+      "command": "/home/nov/mcps-go/mcps-go",
+      "args": [
+        "filesystem"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "get_youtube_transcript": {
+      "command": "/home/nov/mcps-go/mcps-go",
+      "args": [
+        "youtube_transcript"
+      ],
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }
