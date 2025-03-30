@@ -95,8 +95,8 @@ type BraveLocation struct {
 		Latitude  float64 `json:"latitude,omitempty"`
 		Longitude float64 `json:"longitude,omitempty"`
 	} `json:"coordinates,omitempty"`
-	Phone       string `json:"phone,omitempty"`
-	Rating      struct {
+	Phone  string `json:"phone,omitempty"`
+	Rating struct {
 		RatingValue float64 `json:"ratingValue,omitempty"`
 		RatingCount int     `json:"ratingCount,omitempty"`
 	} `json:"rating,omitempty"`
@@ -481,6 +481,10 @@ func getOrDefault(value string, defaultValue string) string {
 	return value
 }
 
+func performTest(query string, count int, offset int) (string, error) {
+	return "performed", nil
+}
+
 // MCPサーバを構築する関数
 func BuildBraveSearchServer() {
 	// APIキーのチェック
@@ -555,6 +559,7 @@ func BuildBraveSearchServer() {
 		}
 
 		// Web検索の実行
+		// results, err := performTest(query, count, offset)
 		results, err := performWebSearch(query, count, offset)
 		if err != nil {
 			return nil, err

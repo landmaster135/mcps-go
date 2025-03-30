@@ -36,8 +36,8 @@ go.work.sum
 *.log
 
 ### Docker ###
-.dockerignore
-Dockerfile
+# .dockerignore
+# Dockerfile
 
 ### VSCode ###
 .vscode/*

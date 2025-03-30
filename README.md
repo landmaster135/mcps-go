@@ -11,6 +11,16 @@
 go build main.go
 ```
 
+## Build with Docker
+```bash
+docker build -t mcps-go .
+```
+
+```bash
+
+docker run -i --rm -e BRAVE_API_KEY=$BRAVE_API_KEY --name my-mcps-go -t mcps-go brave_search
+```
+
 ## Cline settings
 Add the following into `cline_mcp_setting.json`
 ```json
