@@ -5,8 +5,9 @@ import (
 	"os"
 
 	arith_calc "example.com/mcps-go/arith_calc"
-	mypkg "example.com/mcps-go/mypkg"
 	datetime_calc "example.com/mcps-go/datetime_calc"
+	http_request "example.com/mcps-go/http_request"
+	mypkg "example.com/mcps-go/mypkg"
 )
 
 func main() {
@@ -28,13 +29,13 @@ func main() {
 		arith_calc.BuildCalculatorServer()
 	case "datetime_calc":
 		datetime_calc.BuildTimeCalculatorServer()
+	case "http_request":
+		http_request.BuildMcpServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)
 	}
 	mypkg.OutLog("main: built mcp server!")
-
-
 
 	// var c datetime_calc.DatetimeCalculator
 	// result := c.AddDatetime(2023, 12, 15, 10, 30, 45, 0, 1, 0, 0, 0, 0)

@@ -11,6 +11,40 @@
 go build main.go
 ```
 
+## Cline settings
+Add the following into `cline_mcp_setting.json`
+```json
+{
+  "mcpServers": {
+    "arithmetic_calculator": {
+      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "args": [
+        "arith_calc"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "datetime_calculator": {
+      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "args": [
+        "datetime_calc"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "http_request": {
+      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "args": [
+        "http_request"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+
+```
+
 # Contributing
 Contributions to the project are welcome. Please fork the repository and submit a pull request with your changes.
 
