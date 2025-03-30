@@ -255,7 +255,7 @@ func BuildYouTubeTranscriptServer() {
 		}
 
 		// 結果の返却（メタデータとトランスクリプトを含む）
-		result := fmt.Sprintf("Metadata:\n%s\n\nTranscript for video whose ID:%s in %s and language:\n\n%s",
+		result := fmt.Sprintf("Metadata:\n%s\n\nTranscript for video that ID:%s in %s and language:\n\n%s",
 			string(metadataJSON), videoID, lang, transcript)
 		return mcp.NewToolResultText(result), nil
 	})
