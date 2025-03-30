@@ -1,5 +1,5 @@
 # mcps-go
-![Go](https://img.shields.io/badge/Go-1.22-%2300ADD8?logo=go)
+![Go](https://img.shields.io/badge/Go-1.23-%2300ADD8?logo=go)
 ![Coverage](https://img.shields.io/badge/Coverage-59.4%25-yellow)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
