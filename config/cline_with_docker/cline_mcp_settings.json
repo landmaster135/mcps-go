@@ -1,0 +1,58 @@
+{
+  "mcpServers": {
+    "arithmetic_calculator": {
+      "command": "sudo",
+      "args": [
+        "docker",
+        "run",
+        "-i",
+        "--rm",
+        "mcps-go",
+        "arith_calc"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "datetime_calculator": {
+      "command": "sudo",
+      "args": [
+        "docker",
+        "run",
+        "-i",
+        "--rm",
+        "mcps-go",
+        "datetime_calc"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "http_request": {
+      "command": "sudo",
+      "args": [
+        "docker",
+        "run",
+        "-i",
+        "--rm",
+        "mcps-go",
+        "http_request"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "brave_web_search": {
+      "command": "sudo",
+      "args": [
+        "docker",
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "BRAVE_API_KEY=$BRAVE_API_KEY",
+        "mcps-go",
+        "brave_search"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}

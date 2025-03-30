@@ -36,8 +36,8 @@ go.work.sum
 *.log
 
 ### Docker ###
-.dockerignore
-Dockerfile
+# .dockerignore
+# Dockerfile
 
 ### VSCode ###
 .vscode/*
@@ -45,8 +45,14 @@ Dockerfile
 ### setting files ###
 .editorconfig
 target*
+env.yml
+env.yaml
 
 ### Cloud Functions ###
 .gcloudignore
 mypkg/go.mod
 mypkg/go.sum
+
+
+### module file ###
+mcps-go

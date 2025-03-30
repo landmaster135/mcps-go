@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	mypkg "example.com/mymodule/mypkg"
+	mypkg "example.com/mcps-go/mypkg"
 
-	// mocks "mymodule/mocks"
+	// mocks "mcps-go-for-claude/mocks"
 
 	"github.com/stretchr/testify/assert"
 )

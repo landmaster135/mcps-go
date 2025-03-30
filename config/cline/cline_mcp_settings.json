@@ -1,36 +1,3 @@
-# mcps-go
-![Go](https://img.shields.io/badge/Go-1.23-%2300ADD8?logo=go)
-![Coverage](https://img.shields.io/badge/Coverage-59.4%25-yellow)
-![License](https://img.shields.io/badge/license-MIT-blue)
-
-# Execution
-
-## Requirements
-Nothing. A binary file only.
-
-# Development
-
-## Requirements
-- Go 1.23.5 or later
-- [mcp-go](https://github.com/mark3labs/mcp-go)
-
-## Build
-```bash
-go build main.go
-```
-
-## Build with Docker
-```bash
-docker build -t mcps-go .
-```
-Check MCP server
-```bash
-docker run -i --rm -e BRAVE_API_KEY=$BRAVE_API_KEY mcps-go brave_search
-```
-
-## Cline settings
-Add the following into `cline_mcp_setting.json`
-```json
 {
   "mcpServers": {
     "arithmetic_calculator": {
@@ -70,12 +37,3 @@ Add the following into `cline_mcp_setting.json`
     }
   }
 }
-
-
-```
-
-# Contributing
-Welcome.
-
-# License
-MIT License

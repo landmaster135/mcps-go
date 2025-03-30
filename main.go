@@ -1,32 +1,47 @@
 package main
 
 import (
-	mypkg "example.com/mymodule/mypkg"
+	"fmt"
+	"os"
+
+	arith_calc "example.com/mcps-go/arith_calc"
+	brave_search "example.com/mcps-go/brave-search"
+	datetime_calc "example.com/mcps-go/datetime_calc"
+	http_request "example.com/mcps-go/http_request"
+	mypkg "example.com/mcps-go/mypkg"
 )
 
 func main() {
-	// env_name := "ANY_TOKEN"
-	// TOKEN, ok := os.LookupEnv(env_name)
-	// if !ok {
-	// 	fmt.Printf("%s is not set", env_name)
-	// }
-	// results, err := mypkg.AnyFunction(TOKEN)
-	// if err != nil {
-	// 	mypkg.OutLog(err)
-	// 	panic(err)
-	// }
-	mypkg.OutLog("main: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	args := os.Args
+	// check arguments
+	if len(args) < 2 {
+		fmt.Fprintln(os.Stderr, "usage: go run main.go [arguments]")
+		fmt.Fprintln(os.Stderr, "arguments are lack")
+		os.Exit(1)
+	}
+	for i, arg := range args[1:] {
+		fmt.Printf("argument %d: %s\n", i+1, arg)
+	}
 
-	// mypkg.OutLog(results)
-	// j, err := json.Marshal(results)
-	// b := bytes.NewBuffer([]byte(j))
-	// mypkg.OutLog(b)
+	mypkg.OutLog("main: building mcp server...")
+	a1 := args[1]
+	switch a1 {
+	case "arith_calc":
+		arith_calc.BuildCalculatorServer()
+	case "datetime_calc":
+		datetime_calc.BuildTimeCalculatorServer()
+	case "http_request":
+		http_request.BuildMcpServer()
+	case "brave_web_search":
+		brave_search.BuildBraveSearchServer()
+	default:
+		fmt.Fprintln(os.Stderr, "argument is invalid")
+		os.Exit(1)
+	}
+	mypkg.OutLog("main: built mcp server!")
 
-	// mypkg.OutLog(results)
-	l := mypkg.NewBuiltinLogger("FILE")
-	l.Debug("this is debug message")
-	l.Info("this is info message")
-	l.Warning("this is warning message")
-	l.Error("this is error message")
-	l.Fatal("this is fatal message")
+
+	// var c datetime_calc.DatetimeCalculator
+	// result := c.AddDatetime(2023, 12, 15, 10, 30, 45, 0, 1, 0, 0, 0, 0)
+	// fmt.Print((result))
 }
