@@ -310,8 +310,7 @@ func (fs *FileSystemService) GetFileInfo(path string) (*FileInfo, error) {
 
 	// 一部のプラットフォームでは、これらの時間が利用できない場合があります
 	var created, accessed time.Time
-	// Linuxプラットフォームでの時間取得
-	// 注意: これはLinux固有のコードです。他のプラットフォームでは適切に修正する必要があります。
+	// 時間取得
 	created = info.ModTime()  // フォールバックとして変更時間を使用
 	accessed = info.ModTime() // フォールバックとして変更時間を使用
 
@@ -328,31 +327,6 @@ func (fs *FileSystemService) GetFileInfo(path string) (*FileInfo, error) {
 
 // BuildFileSystemServer はファイルシステムMCPサーバーを構築する関数です
 func BuildFileSystemServer() {
-	// コマンドライン引数の解析
-	// args := os.Args[2:]
-	// if len(args) < 3 {
-	// 	fmt.Fprintln(os.Stderr, "使用法: mcps-go filesystem <許可されたディレクトリ> [追加のディレクトリ...]")
-	// 	os.Exit(1)
-	// }
-
-	// 許可されたディレクトリの検証
-	// allowedDirs := args[2:]
-	// for _, dir := range allowedDirs {
-	// 	expandedDir := expandHome(dir)
-	// 	info, err := os.Stat(expandedDir)
-	// 	if err != nil {
-	// 		fmt.Fprintf(os.Stderr, "エラー: ディレクトリ %s へのアクセスに失敗しました: %v\n", dir, err)
-	// 		os.Exit(1)
-	// 	}
-	// 	if !info.IsDir() {
-	// 		fmt.Fprintf(os.Stderr, "エラー: %s はディレクトリではありません\n", dir)
-	// 		os.Exit(1)
-	// 	}
-	// }
-
-	// サービスの初期化
-	// fsService := NewFileSystemService(allowedDirs)
-
 	// サーバーの設定
 	s := server.NewMCPServer(
 		"Secure Filesystem Server",
@@ -383,6 +357,7 @@ func BuildFileSystemServer() {
 			return nil, err
 		}
 		var arr [1]string = [1]string{path}
+		// サービスの初期化
 		fsService := NewFileSystemService(arr)
 		content, err := fsService.ReadFile(path)
 		if err != nil {
@@ -413,11 +388,8 @@ func BuildFileSystemServer() {
 			fmt.Fprintf(os.Stderr, "エラー: ディレクトリ %s へのアクセスに失敗しました: %v\n", path, err)
 			return nil, err
 		}
-		// if !info.Mode().IsRegular() {
-		// 	fmt.Fprintf(os.Stderr, "エラー: %s はディレクトリではありません\n", path)
-		// 	return nil, err
-		// }
 		var arr [1]string = [1]string{path}
+		// サービスの初期化
 		fsService := NewFileSystemService(arr)
 		err = fsService.WriteFile(path, content)
 		if err != nil {
@@ -438,6 +410,7 @@ func BuildFileSystemServer() {
 	s.AddTool(createDirTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		path := request.Params.Arguments["path"].(string)
 		var arr [1]string = [1]string{path}
+		// サービスの初期化
 		fsService := NewFileSystemService(arr)
 		err := fsService.CreateDirectory(path)
 		if err != nil {
@@ -467,6 +440,7 @@ func BuildFileSystemServer() {
 			return nil, err
 		}
 		var arr [1]string = [1]string{path}
+		// サービスの初期化
 		fsService := NewFileSystemService(arr)
 		entries, err := fsService.ListDirectory(path)
 		if err != nil {
@@ -496,6 +470,7 @@ func BuildFileSystemServer() {
 			return nil, err
 		}
 		var arr [1]string = [1]string{path}
+		// サービスの初期化
 		fsService := NewFileSystemService(arr)
 		tree, err := fsService.GetDirectoryTree(path)
 		if err != nil {
@@ -540,9 +515,10 @@ func BuildFileSystemServer() {
 			return nil, err
 		}
 		var arr1 [1]string = [1]string{source}
-		fsService := NewFileSystemService(arr1)
+		// サービスの初期化
+		_ = NewFileSystemService(arr1)
 		var arr2 [1]string = [1]string{destination}
-		fsService = NewFileSystemService(arr2)
+		fsService := NewFileSystemService(arr2)
 		info, err := os.Stat(destination)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "エラー: ディレクトリ %s へのアクセスに失敗しました: %v\n", destination, err)
@@ -579,6 +555,7 @@ func BuildFileSystemServer() {
 		path := request.Params.Arguments["path"].(string)
 		pattern := request.Params.Arguments["pattern"].(string)
 		var arr [1]string = [1]string{path}
+		// サービスの初期化
 		fsService := NewFileSystemService(arr)
 		info, err := os.Stat(path)
 		if err != nil {
@@ -620,6 +597,7 @@ func BuildFileSystemServer() {
 			return nil, err
 		}
 		var arr [1]string = [1]string{path}
+		// サービスの初期化
 		fsService := NewFileSystemService(arr)
 		info, err := fsService.GetFileInfo(path)
 		if err != nil {
@@ -647,6 +625,7 @@ func BuildFileSystemServer() {
 	s.AddTool(allowedDirsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		path := request.Params.Arguments["path"].(string)
 		var arr [1]string = [1]string{path}
+		// サービスの初期化
 		fsService := NewFileSystemService(arr)
 		result := "許可されたディレクトリ:\n" + strings.Join(fsService.allowedDirectories, "\n")
 		return mcp.NewToolResultText(result), nil
