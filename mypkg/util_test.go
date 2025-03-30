@@ -1,10 +1,8 @@
-package mytest
+package mypkg
 
 import (
 	"testing"
 	"time"
-
-	mypkg "example.com/mcps-go/mypkg"
 
 	// mocks "mcps-go-for-claude/mocks"
 
@@ -14,13 +12,13 @@ import (
 func TestNewLogger(t *testing.T) {
 	tests := []struct {
 		name string
-		want mypkg.LoggerIf
+		want LoggerIf
 	}{
-		{"Cover NewLogger codes.", mypkg.NewLogger()},
+		{"Cover NewLogger codes.", NewLogger()},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, mypkg.NewLogger())
+			assert.Equal(t, tt.want, NewLogger())
 		})
 	}
 }
@@ -42,7 +40,7 @@ func TestOutLog(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mypkg.OutLog(tt.args.content...)
+			OutLog(tt.args.content...)
 		})
 	}
 }
@@ -64,7 +62,7 @@ func TestLogger_OutNewLog(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			l := &mypkg.Logger{}
+			l := &Logger{}
 			l.OutNewLog(tt.args.content...)
 		})
 	}
@@ -73,13 +71,13 @@ func TestLogger_OutNewLog(t *testing.T) {
 func TestNewTimeFmt(t *testing.T) {
 	tests := []struct {
 		name string
-		want mypkg.TimeFmtIf
+		want TimeFmtIf
 	}{
-		{"Cover NewTimeFmt codes.", mypkg.NewTimeFmt()},
+		{"Cover NewTimeFmt codes.", NewTimeFmt()},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, mypkg.NewTimeFmt())
+			assert.Equal(t, tt.want, NewTimeFmt())
 		})
 	}
 }
@@ -98,7 +96,7 @@ func TestTimeFmt_Time2str(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := &mypkg.TimeFmt{}
+			f := &TimeFmt{}
 			assert.Equal(t, tt.want, f.Time2str(tt.args.t))
 		})
 	}
@@ -106,5 +104,5 @@ func TestTimeFmt_Time2str(t *testing.T) {
 
 func TestLogMemoryUsage(t *testing.T) {
 	t.Log("Testing LogMemoryUsage function")
-	mypkg.LogMemoryUsage()
+	LogMemoryUsage()
 }

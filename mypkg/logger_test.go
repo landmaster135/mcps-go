@@ -1,4 +1,4 @@
-package mytest
+package mypkg
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	mypkg "example.com/mcps-go/mypkg"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,7 +46,7 @@ func orderSubstrings(a string, substrs []string) ([]string, error) {
 }
 
 func TestBuiltinLogger(t *testing.T) {
-	logger := mypkg.NewBuiltinLogger("stdout")
+	logger := NewBuiltinLogger("stdout")
 
 	tests := [5]struct {
 		method string
