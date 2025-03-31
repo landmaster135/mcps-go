@@ -15,6 +15,51 @@ import (
 	server "github.com/mark3labs/mcp-go/server"
 )
 
+// ヘルパー関数: 文字列パラメータを取得
+func getStringParam(args map[string]interface{}, key string) (string, bool) {
+	if val, ok := args[key]; ok {
+		return val.(string), true
+	}
+	return "", false
+}
+
+// ヘルパー関数: 必須の文字列パラメータを取得
+func getRequiredStringParam(args map[string]interface{}, key string) string {
+	return args[key].(string)
+}
+
+// ヘルパー関数: 数値パラメータを取得
+func getNumberParam(args map[string]interface{}, key string, defaultVal int) int {
+	if val, ok := args[key]; ok {
+		return int(val.(float64))
+	}
+	return defaultVal
+}
+
+// ヘルパー関数: ブールパラメータを取得
+func getBoolParam(args map[string]interface{}, key string, defaultVal bool) bool {
+	if val, ok := args[key]; ok {
+		return val.(bool)
+	}
+	return defaultVal
+}
+
+// ヘルパー関数: 結果をJSON形式で返却
+func returnJSONResult(result interface{}) (*mcp.CallToolResult, error) {
+	jsonResult, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return mcp.NewToolResultText(string(jsonResult)), nil
+}
+
+// ヘルパー関数: オプションマップにパラメータを追加
+func addToOptions(options map[string]interface{}, args map[string]interface{}, key string) {
+	if val, ok := args[key]; ok {
+		options[key] = val
+	}
+}
+
 const (
 	apiBaseURL = "https://api.github.com"
 	version    = "1.0.0"
@@ -206,7 +251,6 @@ func (c *GitHubClient) UpdateIssue(owner, repo string, issueNumber int, options 
 
 	return result, nil
 }
-
 
 // AddIssueComment はイシューにコメントを追加します
 func (c *GitHubClient) AddIssueComment(owner, repo string, issueNumber int, body string) (map[string]interface{}, error) {
@@ -541,27 +585,16 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(searchReposTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		query := request.Params.Arguments["query"].(string)
-
-		var page, perPage int = 1, 30
-		if p, ok := request.Params.Arguments["page"]; ok {
-			page = int(p.(float64))
-		}
-		if pp, ok := request.Params.Arguments["perPage"]; ok {
-			perPage = int(pp.(float64))
-		}
+		query := getRequiredStringParam(request.Params.Arguments, "query")
+		page := getNumberParam(request.Params.Arguments, "page", 1)
+		perPage := getNumberParam(request.Params.Arguments, "perPage", 30)
 
 		result, err := client.SearchRepositories(query, page, perPage)
 		if err != nil {
 			return nil, err
 		}
 
-		jsonResult, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		return mcp.NewToolResultText(string(jsonResult)), nil
+		return returnJSONResult(result)
 	})
 
 	// ツール2: ファイル内容の取得
@@ -585,26 +618,17 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(getFileContentsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
-		path := request.Params.Arguments["path"].(string)
-
-		var branch string
-		if b, ok := request.Params.Arguments["branch"]; ok {
-			branch = b.(string)
-		}
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
+		path := getRequiredStringParam(request.Params.Arguments, "path")
+		branch, _ := getStringParam(request.Params.Arguments, "branch")
 
 		result, err := client.GetFileContents(owner, repo, path, branch)
 		if err != nil {
 			return nil, err
 		}
 
-		jsonResult, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		return mcp.NewToolResultText(string(jsonResult)), nil
+		return returnJSONResult(result)
 	})
 
 	// ツール3: イシューの作成
@@ -634,35 +658,27 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(createIssueTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
 
 		options := make(map[string]interface{})
-		options["title"] = request.Params.Arguments["title"].(string)
+		options["title"] = getRequiredStringParam(request.Params.Arguments, "title")
 
-		if body, ok := request.Params.Arguments["body"]; ok {
-			options["body"] = body.(string)
+		// オプションパラメータを追加
+		if body, ok := getStringParam(request.Params.Arguments, "body"); ok {
+			options["body"] = body
 		}
 
-		if labels, ok := request.Params.Arguments["labels"]; ok {
-			options["labels"] = labels
-		}
-
-		if assignees, ok := request.Params.Arguments["assignees"]; ok {
-			options["assignees"] = assignees
-		}
+		// 配列パラメータを追加
+		addToOptions(options, request.Params.Arguments, "labels")
+		addToOptions(options, request.Params.Arguments, "assignees")
 
 		result, err := client.CreateIssue(owner, repo, options)
 		if err != nil {
 			return nil, err
 		}
 
-		jsonResult, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		return mcp.NewToolResultText(string(jsonResult)), nil
+		return returnJSONResult(result)
 	})
 
 	// ツール4: イシュー一覧の取得
@@ -697,27 +713,26 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(listIssuesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
 
 		options := make(map[string]interface{})
 
-		if state, ok := request.Params.Arguments["state"]; ok {
-			options["state"] = state.(string)
+		// 文字列オプションパラメータを追加
+		if state, ok := getStringParam(request.Params.Arguments, "state"); ok {
+			options["state"] = state
+		}
+		if sort, ok := getStringParam(request.Params.Arguments, "sort"); ok {
+			options["sort"] = sort
+		}
+		if direction, ok := getStringParam(request.Params.Arguments, "direction"); ok {
+			options["direction"] = direction
 		}
 
-		if sort, ok := request.Params.Arguments["sort"]; ok {
-			options["sort"] = sort.(string)
-		}
-
-		if direction, ok := request.Params.Arguments["direction"]; ok {
-			options["direction"] = direction.(string)
-		}
-
+		// 数値オプションパラメータを追加
 		if perPage, ok := request.Params.Arguments["per_page"]; ok {
 			options["per_page"] = int(perPage.(float64))
 		}
-
 		if page, ok := request.Params.Arguments["page"]; ok {
 			options["page"] = int(page.(float64))
 		}
@@ -727,12 +742,7 @@ func BuildGitHubServer() {
 			return nil, err
 		}
 
-		jsonResult, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		return mcp.NewToolResultText(string(jsonResult)), nil
+		return returnJSONResult(result)
 	})
 
 	// ツール5: ユーザーリポジトリの検索
@@ -755,20 +765,21 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(searchUserReposTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		username := request.Params.Arguments["username"].(string)
+		username := getRequiredStringParam(request.Params.Arguments, "username")
 
 		options := make(map[string]interface{})
 
+		// 数値オプションパラメータを追加
 		if perPage, ok := request.Params.Arguments["per_page"]; ok {
 			options["per_page"] = int(perPage.(float64))
 		}
-
 		if page, ok := request.Params.Arguments["page"]; ok {
 			options["page"] = int(page.(float64))
 		}
 
-		if sort, ok := request.Params.Arguments["sort"]; ok {
-			options["sort"] = sort.(string)
+		// 文字列オプションパラメータを追加
+		if sort, ok := getStringParam(request.Params.Arguments, "sort"); ok {
+			options["sort"] = sort
 		}
 
 		result, err := client.GetUserRepositories(username, options)
@@ -776,12 +787,7 @@ func BuildGitHubServer() {
 			return nil, err
 		}
 
-		jsonResult, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		return mcp.NewToolResultText(string(jsonResult)), nil
+		return returnJSONResult(result)
 	})
 
 	// ツール6: プルリクエストの作成
@@ -816,21 +822,19 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(createPullRequestTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
 
 		options := make(map[string]interface{})
-		options["title"] = request.Params.Arguments["title"].(string)
-		options["head"] = request.Params.Arguments["head"].(string)
-		options["base"] = request.Params.Arguments["base"].(string)
+		options["title"] = getRequiredStringParam(request.Params.Arguments, "title")
+		options["head"] = getRequiredStringParam(request.Params.Arguments, "head")
+		options["base"] = getRequiredStringParam(request.Params.Arguments, "base")
 
-		if body, ok := request.Params.Arguments["body"]; ok {
-			options["body"] = body.(string)
+		if body, ok := getStringParam(request.Params.Arguments, "body"); ok {
+			options["body"] = body
 		}
 
-		if draft, ok := request.Params.Arguments["draft"]; ok {
-			options["draft"] = draft.(bool)
-		}
+		options["draft"] = getBoolParam(request.Params.Arguments, "draft", true)
 
 		result, err := client.CreatePullRequest(owner, repo, options)
 		if err != nil {
@@ -861,14 +865,14 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(searchCodeTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		query := request.Params.Arguments["query"].(string)
+		query := getRequiredStringParam(request.Params.Arguments, "query")
 
 		options := make(map[string]interface{})
 
+		// 数値オプションパラメータを追加
 		if page, ok := request.Params.Arguments["page"]; ok {
 			options["page"] = int(page.(float64))
 		}
-
 		if perPage, ok := request.Params.Arguments["per_page"]; ok {
 			options["per_page"] = int(perPage.(float64))
 		}
@@ -878,12 +882,7 @@ func BuildGitHubServer() {
 			return nil, err
 		}
 
-		jsonResult, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		return mcp.NewToolResultText(string(jsonResult)), nil
+		return returnJSONResult(result)
 	})
 
 	// ツール8: イシューの更新
@@ -920,43 +919,33 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(updateIssueTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
-		issueNumber := int(request.Params.Arguments["issue_number"].(float64))
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
+		issueNumber := getNumberParam(request.Params.Arguments, "pull_number", 1)
 
 		options := make(map[string]interface{})
 
-		if title, ok := request.Params.Arguments["title"]; ok {
-			options["title"] = title.(string)
+		// 文字列オプションパラメータを追加
+		if title, ok := getStringParam(request.Params.Arguments, "title"); ok {
+			options["title"] = title
+		}
+		if body, ok := getStringParam(request.Params.Arguments, "body"); ok {
+			options["body"] = body
+		}
+		if state, ok := getStringParam(request.Params.Arguments, "state"); ok {
+			options["state"] = state
 		}
 
-		if body, ok := request.Params.Arguments["body"]; ok {
-			options["body"] = body.(string)
-		}
-
-		if state, ok := request.Params.Arguments["state"]; ok {
-			options["state"] = state.(string)
-		}
-
-		if labels, ok := request.Params.Arguments["labels"]; ok {
-			options["labels"] = labels
-		}
-
-		if assignees, ok := request.Params.Arguments["assignees"]; ok {
-			options["assignees"] = assignees
-		}
+		// 配列パラメータを追加
+		addToOptions(options, request.Params.Arguments, "labels")
+		addToOptions(options, request.Params.Arguments, "assignees")
 
 		result, err := client.UpdateIssue(owner, repo, issueNumber, options)
 		if err != nil {
 			return nil, err
 		}
 
-		jsonResult, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		return mcp.NewToolResultText(string(jsonResult)), nil
+		return returnJSONResult(result)
 	})
 
 	// ツール9: イシューコメントの追加
@@ -981,22 +970,17 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(addIssueCommentTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
 		issueNumber := int(request.Params.Arguments["issue_number"].(float64))
-		body := request.Params.Arguments["body"].(string)
+		body := getRequiredStringParam(request.Params.Arguments, "body")
 
 		result, err := client.AddIssueComment(owner, repo, issueNumber, body)
 		if err != nil {
 			return nil, err
 		}
 
-		jsonResult, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		return mcp.NewToolResultText(string(jsonResult)), nil
+		return returnJSONResult(result)
 	})
 
 	// ツール10: コミット一覧の取得
@@ -1022,33 +1006,18 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(listCommitsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
-
-		var page, perPage int = 1, 30
-		if p, ok := request.Params.Arguments["page"]; ok {
-			page = int(p.(float64))
-		}
-		if pp, ok := request.Params.Arguments["perPage"]; ok {
-			perPage = int(pp.(float64))
-		}
-
-		var sha string
-		if s, ok := request.Params.Arguments["sha"]; ok {
-			sha = s.(string)
-		}
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
+		page := getNumberParam(request.Params.Arguments, "page", 1)
+		perPage := getNumberParam(request.Params.Arguments, "perPage", 30)
+		sha, _ := getStringParam(request.Params.Arguments, "sha")
 
 		result, err := client.ListCommits(owner, repo, page, perPage, sha)
 		if err != nil {
 			return nil, err
 		}
 
-		jsonResult, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		return mcp.NewToolResultText(string(jsonResult)), nil
+		return returnJSONResult(result)
 	})
 
 	// ツール11: プルリクエストレビューの作成
@@ -1076,18 +1045,18 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(createPullRequestReviewTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
-		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
+		pullNumber := getNumberParam(request.Params.Arguments, "pull_number", 1)
 
 		options := make(map[string]interface{})
 
-		if event, ok := request.Params.Arguments["event"]; ok {
-			options["event"] = event.(string)
+		// 文字列オプションパラメータを追加
+		if event, ok := getStringParam(request.Params.Arguments, "event"); ok {
+			options["event"] = event
 		}
-
-		if body, ok := request.Params.Arguments["body"]; ok {
-			options["body"] = body.(string)
+		if body, ok := getStringParam(request.Params.Arguments, "body"); ok {
+			options["body"] = body
 		}
 
 		result, err := client.CreatePullRequestReview(owner, repo, pullNumber, options)
@@ -1095,12 +1064,7 @@ func BuildGitHubServer() {
 			return nil, err
 		}
 
-		jsonResult, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		return mcp.NewToolResultText(string(jsonResult)), nil
+		return returnJSONResult(result)
 	})
 
 	// ツール12: プルリクエストのマージ
@@ -1131,22 +1095,20 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(mergePullRequestTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
-		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
+		pullNumber := getNumberParam(request.Params.Arguments, "pull_number", 1)
 
 		options := make(map[string]interface{})
 
-		if commitTitle, ok := request.Params.Arguments["commit_title"]; ok {
-			options["commit_title"] = commitTitle.(string)
+		if commitTitle, ok := getStringParam(request.Params.Arguments, "commit_title"); ok {
+			options["commit_title"] = commitTitle
 		}
-
-		if commitMessage, ok := request.Params.Arguments["commit_message"]; ok {
-			options["commit_message"] = commitMessage.(string)
+		if commitMessage, ok := getStringParam(request.Params.Arguments, "commit_message"); ok {
+			options["commit_message"] = commitMessage
 		}
-
-		if mergeMethod, ok := request.Params.Arguments["merge_method"]; ok {
-			options["merge_method"] = mergeMethod.(string)
+		if mergeMethod, ok := getStringParam(request.Params.Arguments, "merge_method"); ok {
+			options["merge_method"] = mergeMethod
 		}
 
 		result, err := client.MergePullRequest(owner, repo, pullNumber, options)
@@ -1182,7 +1144,7 @@ func BuildGitHubServer() {
 	s.AddTool(getPullRequestFilesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		owner := request.Params.Arguments["owner"].(string)
 		repo := request.Params.Arguments["repo"].(string)
-		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+		pullNumber := getNumberParam(request.Params.Arguments, "pull_number", 1)
 
 		result, err := client.GetPullRequestFiles(owner, repo, pullNumber)
 		if err != nil {
@@ -1215,9 +1177,9 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(getPullRequestStatusTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
-		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
+		pullNumber := getNumberParam(request.Params.Arguments, "pull_number", 1)
 
 		result, err := client.GetPullRequestStatus(owner, repo, pullNumber)
 		if err != nil {
@@ -1253,13 +1215,13 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(updatePullRequestBranchTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
-		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
+		pullNumber := getNumberParam(request.Params.Arguments, "pull_number", 1)
 
 		var expectedHeadSHA string
-		if sha, ok := request.Params.Arguments["expected_head_sha"]; ok {
-			expectedHeadSHA = sha.(string)
+		if sha, ok := getStringParam(request.Params.Arguments, "expected_head_sha"); ok {
+			expectedHeadSHA = sha
 		}
 
 		err := client.UpdatePullRequestBranch(owner, repo, pullNumber, expectedHeadSHA)
@@ -1288,9 +1250,9 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(getPullRequestCommentsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
-		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
+		pullNumber := getNumberParam(request.Params.Arguments, "pull_number", 1)
 
 		result, err := client.GetPullRequestComments(owner, repo, pullNumber)
 		if err != nil {
@@ -1323,9 +1285,9 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(getPullRequestReviewsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
-		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
+		pullNumber := getNumberParam(request.Params.Arguments, "pull_number", 1)
 
 		result, err := client.GetPullRequestReviews(owner, repo, pullNumber)
 		if err != nil {
@@ -1378,37 +1340,31 @@ func BuildGitHubServer() {
 	)
 
 	s.AddTool(listPullRequestsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := request.Params.Arguments["owner"].(string)
-		repo := request.Params.Arguments["repo"].(string)
+		owner := getRequiredStringParam(request.Params.Arguments, "owner")
+		repo := getRequiredStringParam(request.Params.Arguments, "repo")
 
 		options := make(map[string]interface{})
 
-		if state, ok := request.Params.Arguments["state"]; ok {
-			options["state"] = state.(string)
+		if state, ok := getStringParam(request.Params.Arguments, "state"); ok {
+			options["state"] = state
 		}
-
-		if sort, ok := request.Params.Arguments["sort"]; ok {
-			options["sort"] = sort.(string)
+		if sort, ok := getStringParam(request.Params.Arguments, "sort"); ok {
+			options["sort"] = sort
 		}
-
-		if direction, ok := request.Params.Arguments["direction"]; ok {
-			options["direction"] = direction.(string)
+		if direction, ok := getStringParam(request.Params.Arguments, "direction"); ok {
+			options["direction"] = direction
 		}
-
-		if perPage, ok := request.Params.Arguments["per_page"]; ok {
-			options["per_page"] = int(perPage.(float64))
+		if perPage, ok := getStringParam(request.Params.Arguments, "per_page"); ok {
+			options["per_page"] = perPage
 		}
-
-		if page, ok := request.Params.Arguments["page"]; ok {
-			options["page"] = int(page.(float64))
+		if page, ok := getStringParam(request.Params.Arguments, "page"); ok {
+			options["page"] = page
 		}
-
-		if head, ok := request.Params.Arguments["head"]; ok {
-			options["head"] = head.(string)
+		if head, ok := getStringParam(request.Params.Arguments, "head"); ok {
+			options["head"] = head
 		}
-
-		if base, ok := request.Params.Arguments["base"]; ok {
-			options["base"] = base.(string)
+		if base, ok := getStringParam(request.Params.Arguments, "base"); ok {
+			options["base"] = base
 		}
 
 		result, err := client.ListPullRequests(owner, repo, options)
