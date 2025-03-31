@@ -185,6 +185,122 @@ func (c *GitHubClient) ListIssues(owner, repo string, options map[string]interfa
 	return result, nil
 }
 
+// UpdateIssue は既存のイシューを更新します
+func (c *GitHubClient) UpdateIssue(owner, repo string, issueNumber int, options map[string]interface{}) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/issues/%d", apiBaseURL, owner, repo, issueNumber)
+
+	jsonBody, err := json.Marshal(options)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := c.doRequest("PATCH", url, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+
+// AddIssueComment はイシューにコメントを追加します
+func (c *GitHubClient) AddIssueComment(owner, repo string, issueNumber int, body string) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/issues/%d/comments", apiBaseURL, owner, repo, issueNumber)
+
+	jsonBody, err := json.Marshal(map[string]string{"body": body})
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := c.doRequest("POST", url, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// CreatePullRequest は新しいプルリクエストを作成します
+func (c *GitHubClient) CreatePullRequest(owner, repo string, options map[string]interface{}) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/pulls", apiBaseURL, owner, repo)
+
+	jsonBody, err := json.Marshal(options)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := c.doRequest("POST", url, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// SearchCode はGitHub全体でコードを検索します
+func (c *GitHubClient) SearchCode(query string, options map[string]interface{}) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/search/code?q=%s", apiBaseURL, query)
+
+	// クエリパラメータを追加
+	for k, v := range options {
+		url += fmt.Sprintf("&%s=%v", k, v)
+	}
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// ListCommits はリポジトリのコミット一覧を取得します
+func (c *GitHubClient) ListCommits(owner, repo string, page, perPage int, sha string) ([]map[string]interface{}, error) {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 30
+	}
+
+	url := fmt.Sprintf("%s/repos/%s/%s/commits?page=%d&per_page=%d", apiBaseURL, owner, repo, page, perPage)
+	if sha != "" {
+		url += fmt.Sprintf("&sha=%s", sha)
+	}
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // GetUserRepositories はユーザーのリポジトリ一覧を取得します
 func (c *GitHubClient) GetUserRepositories(username string, options map[string]interface{}) ([]map[string]interface{}, error) {
 	url := fmt.Sprintf("%s/users/%s/repos", apiBaseURL, username)
@@ -477,6 +593,273 @@ func BuildGitHubServer() {
 		}
 
 		result, err := client.GetUserRepositories(username, options)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール6: プルリクエストの作成
+	createPullRequestTool := mcp.NewTool("create_pull_request",
+		mcp.WithDescription("Create a new pull request in a GitHub repository"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithString("title",
+			mcp.Required(),
+			mcp.Description("Pull request title"),
+		),
+		mcp.WithString("head",
+			mcp.Required(),
+			mcp.Description("The name of the branch where your changes are implemented"),
+		),
+		mcp.WithString("base",
+			mcp.Required(),
+			mcp.Description("The name of the branch you want the changes pulled into"),
+		),
+		mcp.WithString("body",
+			mcp.Description("Pull request body"),
+		),
+		mcp.WithBoolean("draft",
+			mcp.Description("Whether to create a draft pull request"),
+		),
+	)
+
+	s.AddTool(createPullRequestTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+
+		options := make(map[string]interface{})
+		options["title"] = request.Params.Arguments["title"].(string)
+		options["head"] = request.Params.Arguments["head"].(string)
+		options["base"] = request.Params.Arguments["base"].(string)
+
+		if body, ok := request.Params.Arguments["body"]; ok {
+			options["body"] = body.(string)
+		}
+
+		if draft, ok := request.Params.Arguments["draft"]; ok {
+			options["draft"] = draft.(bool)
+		}
+
+		result, err := client.CreatePullRequest(owner, repo, options)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール7: コード検索
+	searchCodeTool := mcp.NewTool("search_code",
+		mcp.WithDescription("Search for code across GitHub repositories"),
+		mcp.WithString("query",
+			mcp.Required(),
+			mcp.Description("Search query. This tool must have authentication to access the code search API. Here is the example of url with 'q' parameter to request: https://api.github.com/search/code?q=addClass+in:file+language:js+repo:jquery/jquery"),
+		),
+		mcp.WithNumber("page",
+			mcp.Description("Page number (default: 1)"),
+		),
+		mcp.WithNumber("per_page",
+			mcp.Description("Results per page (default: 30, max: 100)"),
+		),
+	)
+
+	s.AddTool(searchCodeTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		query := request.Params.Arguments["query"].(string)
+
+		options := make(map[string]interface{})
+
+		if page, ok := request.Params.Arguments["page"]; ok {
+			options["page"] = int(page.(float64))
+		}
+
+		if perPage, ok := request.Params.Arguments["per_page"]; ok {
+			options["per_page"] = int(perPage.(float64))
+		}
+
+		result, err := client.SearchCode(query, options)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール8: イシューの更新
+	updateIssueTool := mcp.NewTool("update_issue",
+		mcp.WithDescription("Update an existing issue in a GitHub repository"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("issue_number",
+			mcp.Required(),
+			mcp.Description("Issue number"),
+		),
+		mcp.WithString("title",
+			mcp.Description("New issue title"),
+		),
+		mcp.WithString("body",
+			mcp.Description("New issue body"),
+		),
+		mcp.WithString("state",
+			mcp.Description("State of the issue: open or closed"),
+			mcp.Enum("open", "closed"),
+		),
+		mcp.WithArray("labels",
+			mcp.Description("New labels for the issue"),
+		),
+		mcp.WithArray("assignees",
+			mcp.Description("New assignees for the issue"),
+		),
+	)
+
+	s.AddTool(updateIssueTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+		issueNumber := int(request.Params.Arguments["issue_number"].(float64))
+
+		options := make(map[string]interface{})
+
+		if title, ok := request.Params.Arguments["title"]; ok {
+			options["title"] = title.(string)
+		}
+
+		if body, ok := request.Params.Arguments["body"]; ok {
+			options["body"] = body.(string)
+		}
+
+		if state, ok := request.Params.Arguments["state"]; ok {
+			options["state"] = state.(string)
+		}
+
+		if labels, ok := request.Params.Arguments["labels"]; ok {
+			options["labels"] = labels
+		}
+
+		if assignees, ok := request.Params.Arguments["assignees"]; ok {
+			options["assignees"] = assignees
+		}
+
+		result, err := client.UpdateIssue(owner, repo, issueNumber, options)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール9: イシューコメントの追加
+	addIssueCommentTool := mcp.NewTool("add_issue_comment",
+		mcp.WithDescription("Add a comment to an existing issue"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("issue_number",
+			mcp.Required(),
+			mcp.Description("Issue number"),
+		),
+		mcp.WithString("body",
+			mcp.Required(),
+			mcp.Description("Comment body"),
+		),
+	)
+
+	s.AddTool(addIssueCommentTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+		issueNumber := int(request.Params.Arguments["issue_number"].(float64))
+		body := request.Params.Arguments["body"].(string)
+
+		result, err := client.AddIssueComment(owner, repo, issueNumber, body)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール10: コミット一覧の取得
+	listCommitsTool := mcp.NewTool("list_commits",
+		mcp.WithDescription("Get list of commits of a branch in a GitHub repository"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("page",
+			mcp.Description("Page number (default: 1)"),
+		),
+		mcp.WithNumber("perPage",
+			mcp.Description("Results per page (default: 30, max: 100)"),
+		),
+		mcp.WithString("sha",
+			mcp.Description("SHA or branch name to start listing commits from"),
+		),
+	)
+
+	s.AddTool(listCommitsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+
+		var page, perPage int = 1, 30
+		if p, ok := request.Params.Arguments["page"]; ok {
+			page = int(p.(float64))
+		}
+		if pp, ok := request.Params.Arguments["perPage"]; ok {
+			perPage = int(pp.(float64))
+		}
+
+		var sha string
+		if s, ok := request.Params.Arguments["sha"]; ok {
+			sha = s.(string)
+		}
+
+		result, err := client.ListCommits(owner, repo, page, perPage, sha)
 		if err != nil {
 			return nil, err
 		}
