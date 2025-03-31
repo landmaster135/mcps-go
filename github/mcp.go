@@ -92,8 +92,8 @@ func NewGitHubClient(token string) *GitHubClient {
 	}
 }
 
-// doRequest はHTTPリクエストを実行し、レスポンスを処理します
-func (c *GitHubClient) doRequest(method, url string, body io.Reader) ([]byte, error) {
+// createRequest はHTTPリクエストを作成して、それにヘッダーおよびボディを設定します
+func (c *GitHubClient) createRequest(method, url string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
@@ -105,6 +105,15 @@ func (c *GitHubClient) doRequest(method, url string, body io.Reader) ([]byte, er
 	}
 	if method == "POST" || method == "PATCH" || method == "PUT" {
 		req.Header.Set("Content-Type", "application/json")
+	}
+	return req, nil
+}
+
+// doRequest はHTTPリクエストを実行し、レスポンスを処理します
+func (c *GitHubClient) doRequest(method, url string, body io.Reader) ([]byte, error) {
+	req, err := c.createRequest(method, url, body)
+	if err != nil {
+		return nil, err
 	}
 
 	resp, err := c.httpClient.Do(req)
