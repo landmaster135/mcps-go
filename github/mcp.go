@@ -405,6 +405,32 @@ func (c *GitHubClient) GetPullRequestReviews(owner, repo string, pullNumber int)
 	return result, nil
 }
 
+// ListPullRequests はリポジトリのプルリクエスト一覧を取得します
+func (c *GitHubClient) ListPullRequests(owner, repo string, options map[string]interface{}) ([]map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/pulls", apiBaseURL, owner, repo)
+
+	// クエリパラメータを追加
+	queryParams := []string{}
+	for k, v := range options {
+		queryParams = append(queryParams, fmt.Sprintf("%s=%v", k, v))
+	}
+	if len(queryParams) > 0 {
+		url += "?" + strings.Join(queryParams, "&")
+	}
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // SearchCode はGitHub全体でコードを検索します
 func (c *GitHubClient) SearchCode(query string, options map[string]interface{}) (map[string]interface{}, error) {
 	url := fmt.Sprintf("%s/search/code?q=%s", apiBaseURL, query)
@@ -1302,6 +1328,90 @@ func BuildGitHubServer() {
 		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
 
 		result, err := client.GetPullRequestReviews(owner, repo, pullNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール18: プルリクエスト一覧の取得
+	listPullRequestsTool := mcp.NewTool("list_pull_requests",
+		mcp.WithDescription("List and filter repository pull requests"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithString("state",
+			mcp.Description("Pull request state: open, closed, or all (default: open)"),
+			mcp.Enum("open", "closed", "all"),
+		),
+		mcp.WithString("sort",
+			mcp.Description("Sort field: created, updated, popularity, long-running (default: created)"),
+			mcp.Enum("created", "updated", "popularity", "long-running"),
+		),
+		mcp.WithString("direction",
+			mcp.Description("Sort direction: asc or desc (default: desc)"),
+			mcp.Enum("asc", "desc"),
+		),
+		mcp.WithNumber("per_page",
+			mcp.Description("Results per page (default: 30, max: 100)"),
+		),
+		mcp.WithNumber("page",
+			mcp.Description("Page number (default: 1)"),
+		),
+		mcp.WithString("head",
+			mcp.Description("Filter by head user or head organization and branch name in the format of 'user:ref-name' or 'organization:ref-name'"),
+		),
+		mcp.WithString("base",
+			mcp.Description("Filter by base branch name"),
+		),
+	)
+
+	s.AddTool(listPullRequestsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+
+		options := make(map[string]interface{})
+
+		if state, ok := request.Params.Arguments["state"]; ok {
+			options["state"] = state.(string)
+		}
+
+		if sort, ok := request.Params.Arguments["sort"]; ok {
+			options["sort"] = sort.(string)
+		}
+
+		if direction, ok := request.Params.Arguments["direction"]; ok {
+			options["direction"] = direction.(string)
+		}
+
+		if perPage, ok := request.Params.Arguments["per_page"]; ok {
+			options["per_page"] = int(perPage.(float64))
+		}
+
+		if page, ok := request.Params.Arguments["page"]; ok {
+			options["page"] = int(page.(float64))
+		}
+
+		if head, ok := request.Params.Arguments["head"]; ok {
+			options["head"] = head.(string)
+		}
+
+		if base, ok := request.Params.Arguments["base"]; ok {
+			options["base"] = base.(string)
+		}
+
+		result, err := client.ListPullRequests(owner, repo, options)
 		if err != nil {
 			return nil, err
 		}
