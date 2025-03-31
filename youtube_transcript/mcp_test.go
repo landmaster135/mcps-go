@@ -170,6 +170,105 @@ func TestStripHTMLTags(t *testing.T) {
 	}
 }
 
+// TestExtractCaptionTracks は extractCaptionTracks 関数をテストします
+func TestExtractCaptionTracks(t *testing.T) {
+	tests := []struct {
+		name     string
+		html     string
+		expected string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name:     "標準的なパターン",
+			html:     `{"captionTracks":[{"baseUrl":"https://example.com","name":{"simpleText":"English"},"vssId":".en","languageCode":"en"}]}`,
+			expected: `{"captionTracks":[{"baseUrl":"https://example.com","name":{"simpleText":"English"},"vssId":".en","languageCode":"en"}]}`,
+			wantErr:  false,
+		},
+		{
+			name:     "別のパターン",
+			html:     `"captions":{"playerCaptionsTracklistRenderer":{"captionTracks":[{"baseUrl":"https://example.com"}]}}`,
+			expected: `{"captionTracks":[{"baseUrl":"https://example.com"}]}`,
+			wantErr:  false,
+		},
+		{
+			name:     "さらに別のパターン",
+			html:     `"playerCaptionsTracklistRenderer":{"captionTracks":[{"baseUrl":"https://example.com"}]}`,
+			expected: `{"captionTracks":[{"baseUrl":"https://example.com"}]}`,
+			wantErr:  false,
+		},
+		{
+			name:    "字幕なし",
+			html:    `"playabilityStatus":{"status":"ERROR"}`,
+			wantErr: true,
+			errMsg:  ErrVideoUnavailable,
+		},
+		{
+			name:    "字幕トラックなし",
+			html:    `"playabilityStatus":{"status":"OK"}`,
+			wantErr: true,
+			errMsg:  ErrNoSubtitles,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := extractCaptionTracks(tt.html)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("extractCaptionTracks() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && err.Error() != tt.errMsg {
+				t.Errorf("extractCaptionTracks() error message = %v, want %v", err.Error(), tt.errMsg)
+				return
+			}
+			if !tt.wantErr && got != tt.expected {
+				t.Errorf("extractCaptionTracks() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestCalculateTotalLength は calculateTotalLength 関数をテストします
+func TestCalculateTotalLength(t *testing.T) {
+	tests := []struct {
+		name     string
+		lines    []TranscriptLine
+		expected float64
+	}{
+		{
+			name:     "空の入力",
+			lines:    []TranscriptLine{},
+			expected: 0,
+		},
+		{
+			name: "単一行",
+			lines: []TranscriptLine{
+				{Start: 0, Dur: 1, Text: "Hello world"},
+			},
+			expected: 1,
+		},
+		{
+			name: "複数行",
+			lines: []TranscriptLine{
+				{Start: 0, Dur: 1, Text: "Hello"},
+				{Start: 1, Dur: 2, Text: "world"},
+				{Start: 3, Dur: 3, Text: "!"},
+			},
+			expected: 6,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := calculateTotalLength(tt.lines)
+			if got != tt.expected {
+				t.Errorf("calculateTotalLength() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
 // MockHTTPClient は HTTP クライアントのモックです
 type MockHTTPClient struct {
 	DoFunc func(req *http.Request) (*http.Response, error)
@@ -215,23 +314,76 @@ func TestIntegration(t *testing.T) {
 
 	service := NewYouTubeTranscriptService()
 
-	// 実際のYouTube動画IDを使用
-	videoID := "dQw4w9WgXcQ" // Rick Astley - Never Gonna Give You Up
-	lang := "en"
-
-	lines, err := service.GetTranscript(videoID, lang)
-	if err != nil {
-		t.Fatalf("GetTranscript() error = %v", err)
+	// テストケース
+	tests := []struct {
+		name    string
+		videoID string
+		lang    string
+		wantErr bool
+	}{
+		{
+			name:    "英語字幕あり",
+			videoID: "dQw4w9WgXcQ", // Rick Astley - Never Gonna Give You Up
+			lang:    "en",
+			wantErr: false,
+		},
+		{
+			name:    "日本語字幕あり",
+			videoID: "dQw4w9WgXcQ", // Rick Astley - Never Gonna Give You Up
+			lang:    "ja",
+			wantErr: false,
+		},
+		{
+			name:    "存在しない言語",
+			videoID: "dQw4w9WgXcQ", // Rick Astley - Never Gonna Give You Up
+			lang:    "xx",
+			wantErr: true,
+		},
+		{
+			name:    "存在しない動画ID",
+			videoID: "invalid-id",
+			lang:    "en",
+			wantErr: true,
+		},
 	}
 
-	if len(lines) == 0 {
-		t.Errorf("GetTranscript() returned empty lines")
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lines, err := service.GetTranscript(tt.videoID, tt.lang)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetTranscript() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
 
-	transcript := service.FormatTranscript(lines)
-	if transcript == "" {
-		t.Errorf("FormatTranscript() returned empty string")
-	}
+			if !tt.wantErr {
+				if len(lines) == 0 {
+					t.Errorf("GetTranscript() returned empty lines")
+				}
 
-	t.Logf("Transcript: %s", transcript)
+				transcript := service.FormatTranscript(lines)
+				if transcript == "" {
+					t.Errorf("FormatTranscript() returned empty string")
+				}
+
+				totalLength := calculateTotalLength(lines)
+				if totalLength <= 0 {
+					t.Errorf("calculateTotalLength() returned invalid length: %v", totalLength)
+				}
+
+				t.Logf("Video ID: %s, Language: %s, Lines: %d, Total Length: %.2f seconds",
+					tt.videoID, tt.lang, len(lines), totalLength)
+				t.Logf("Sample transcript: %s", transcript[:min(100, len(transcript))]+"...")
+			} else {
+				t.Logf("Expected error occurred: %v", err)
+			}
+		})
+	}
+}
+
+// min は2つの整数の小さい方を返します
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

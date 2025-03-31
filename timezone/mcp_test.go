@@ -1,6 +1,7 @@
 package timezone
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -50,10 +51,104 @@ func TestGetCurrentTime(t *testing.T) {
 			}
 
 			if !tt.wantError {
-				// 結果が正しい形式かチェック
-				_, err := time.Parse("2006-01-02 15:04:05", result)
+				// 結果が正しい形式かチェック（新しいフォーマット）
+				_, err := time.Parse("2006-01-02 15:04:05 MST (Z07:00)", result)
 				if err != nil {
 					t.Errorf("GetCurrentTime() returned invalid time format: %v", result)
+				}
+			}
+		})
+	}
+}
+
+// TestNormalizeTimezone は NormalizeTimezone 関数をテストします
+func TestNormalizeTimezone(t *testing.T) {
+	service := &TimezoneService{}
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "標準的なタイムゾーン",
+			input:    "UTC",
+			expected: "UTC",
+		},
+		{
+			name:     "一般的な略称: JST",
+			input:    "jst",
+			expected: "Asia/Tokyo",
+		},
+		{
+			name:     "一般的な略称: EST",
+			input:    "est",
+			expected: "America/New_York",
+		},
+		{
+			name:     "国名: Japan",
+			input:    "japan",
+			expected: "Asia/Tokyo",
+		},
+		{
+			name:     "存在しない略称",
+			input:    "xyz",
+			expected: "xyz",
+		},
+		{
+			name:     "大文字小文字の違い",
+			input:    "JST",
+			expected: "Asia/Tokyo",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.NormalizeTimezone(tt.input)
+			if result != tt.expected {
+				t.Errorf("NormalizeTimezone() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+// TestFindSimilarTimezones は FindSimilarTimezones 関数をテストします
+func TestFindSimilarTimezones(t *testing.T) {
+	service := &TimezoneService{}
+
+	tests := []struct {
+		name     string
+		input    string
+		contains []string
+	}{
+		{
+			name:     "Tokyo を含む検索",
+			input:    "Tokyo",
+			contains: []string{"Asia/Tokyo"},
+		},
+		{
+			name:     "New_York を含む検索",
+			input:    "New_York",
+			contains: []string{"America/New_York"},
+		},
+		{
+			name:     "存在しない検索",
+			input:    "NonExistent",
+			contains: []string{"UTC"}, // デフォルトの提案を含む
+		},
+		{
+			name:     "Pacific を含む検索",
+			input:    "Pacific",
+			contains: []string{"Pacific"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.FindSimilarTimezones(tt.input)
+			for _, expected := range tt.contains {
+				if !strings.Contains(result, expected) {
+					t.Errorf("FindSimilarTimezones() = %v, should contain %v", result, expected)
 				}
 			}
 		})
@@ -206,5 +301,96 @@ func TestTimezoneConversion(t *testing.T) {
 	expectedHour := 9
 	if tokyoTime.Hour() != expectedHour {
 		t.Errorf("Timezone conversion failed, got hour: %d, want: %d", tokyoTime.Hour(), expectedHour)
+	}
+}
+
+// TestConvertTime は ConvertTime 関数をテストします
+func TestConvertTime(t *testing.T) {
+	service := &TimezoneService{}
+
+	tests := []struct {
+		name         string
+		dateTime     string
+		fromTimezone string
+		toTimezone   string
+		wantError    bool
+		contains     string
+	}{
+		{
+			name:         "UTC から Tokyo への変換",
+			dateTime:     "2023-01-02 00:00:00",
+			fromTimezone: "UTC",
+			toTimezone:   "Asia/Tokyo",
+			wantError:    false,
+			contains:     "09:00:00",
+		},
+		{
+			name:         "Tokyo から New_York への変換",
+			dateTime:     "2023-01-02 12:00:00",
+			fromTimezone: "Asia/Tokyo",
+			toTimezone:   "America/New_York",
+			wantError:    false,
+			contains:     "22:00:00",
+		},
+		{
+			name:         "略称を使用: JST から EST への変換",
+			dateTime:     "2023-01-02 12:00:00",
+			fromTimezone: "jst",
+			toTimezone:   "est",
+			wantError:    false,
+			contains:     "22:00:00",
+		},
+		{
+			name:         "無効なタイムゾーン",
+			dateTime:     "2023-01-02 12:00:00",
+			fromTimezone: "Invalid/Timezone",
+			toTimezone:   "UTC",
+			wantError:    true,
+		},
+		{
+			name:         "無効な日付形式",
+			dateTime:     "Invalid Date",
+			fromTimezone: "UTC",
+			toTimezone:   "UTC",
+			wantError:    true,
+		},
+		{
+			name:         "別の日付形式: YYYY/MM/DD",
+			dateTime:     "2023/01/02 12:00:00",
+			fromTimezone: "UTC",
+			toTimezone:   "Asia/Tokyo",
+			wantError:    false,
+			contains:     "21:00:00",
+		},
+		{
+			name:         "別の日付形式: YYYY-MM-DD",
+			dateTime:     "2023-01-02",
+			fromTimezone: "UTC",
+			toTimezone:   "Asia/Tokyo",
+			wantError:    false,
+			contains:     "09:00:00",
+		},
+		{
+			name:         "別の日付形式: HH:MM:SS",
+			dateTime:     "12:00:00",
+			fromTimezone: "UTC",
+			toTimezone:   "Asia/Tokyo",
+			wantError:    false,
+			contains:     "21:18:59", // 歴史的なタイムゾーン（LMT）のオフセットを考慮
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := service.ConvertTime(tt.dateTime, tt.fromTimezone, tt.toTimezone)
+			if (err != nil) != tt.wantError {
+				t.Errorf("ConvertTime() error = %v, wantError %v", err, tt.wantError)
+				return
+			}
+
+			if !tt.wantError && !strings.Contains(result, tt.contains) {
+				t.Errorf("ConvertTime() = %v, should contain %v", result, tt.contains)
+			}
+		})
 	}
 }

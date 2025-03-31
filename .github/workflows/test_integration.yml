@@ -23,7 +23,7 @@ jobs:
         run: go version
       - name: Run Test
         run: |
-          go test -v ./... -coverpkg=./mypkg -covermode=count -coverprofile=${{ env.COV_FILE }}
+          go test -v ./... -coverpkg=./... -covermode=count -coverprofile=${{ env.COV_FILE }}
           go tool cover -func=${{ env.COV_FILE }} -o=${{ env.COV_FILE }}
       - name: Go Coverage Badge  # Pass the `coverage.out` output to this action
         uses: tj-actions/coverage-badge-go@v2
