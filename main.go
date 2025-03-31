@@ -8,6 +8,7 @@ import (
 	brave_search "example.com/mcps-go/brave_search"
 	datetime_calc "example.com/mcps-go/datetime_calc"
 	filesystem "example.com/mcps-go/filesystem"
+	github "example.com/mcps-go/github"
 	http_request "example.com/mcps-go/http_request"
 	util "example.com/mcps-go/util"
 	timezone "example.com/mcps-go/timezone"
@@ -43,6 +44,8 @@ func main() {
 		filesystem.BuildFileSystemServer()
 	case "youtube_transcript":
 		youtube_transcript.BuildYouTubeTranscriptServer()
+	case "github":
+		github.BuildGitHubServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)

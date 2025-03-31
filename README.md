@@ -77,6 +77,10 @@ Add the following into `cline_mcp_setting.json`
 
 ```
 
+## GitHub PAT
+The following permissions are required.
+- `repo`
+
 # Contributing
 Welcome.
 

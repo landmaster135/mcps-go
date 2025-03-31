@@ -1,0 +1,496 @@
+package github
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	mcp "github.com/mark3labs/mcp-go/mcp"
+	server "github.com/mark3labs/mcp-go/server"
+)
+
+const (
+	apiBaseURL = "https://api.github.com"
+	version    = "1.0.0"
+)
+
+// GitHubError はGitHub APIからのエラーを表します
+type GitHubError struct {
+	Message          string `json:"message"`
+	DocumentationURL string `json:"documentation_url"`
+	StatusCode       int
+}
+
+func (e *GitHubError) Error() string {
+	return fmt.Sprintf("GitHub API Error: %s (Status: %d)", e.Message, e.StatusCode)
+}
+
+// GitHubClient はGitHub APIとの通信を処理します
+type GitHubClient struct {
+	httpClient *http.Client
+	token      string
+}
+
+// NewGitHubClient は新しいGitHubクライアントを作成します
+func NewGitHubClient(token string) *GitHubClient {
+	return &GitHubClient{
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		token: token,
+	}
+}
+
+// doRequest はHTTPリクエストを実行し、レスポンスを処理します
+func (c *GitHubClient) doRequest(method, url string, body io.Reader) ([]byte, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	if c.token != "" {
+		req.Header.Set("Authorization", "token "+c.token)
+	}
+	if method == "POST" || method == "PATCH" || method == "PUT" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= 400 {
+		var ghError GitHubError
+		if err := json.Unmarshal(respBody, &ghError); err != nil {
+			return nil, fmt.Errorf("HTTP error: %d - %s", resp.StatusCode, string(respBody))
+		}
+		ghError.StatusCode = resp.StatusCode
+		return nil, &ghError
+	}
+
+	return respBody, nil
+}
+
+// SearchRepositories はGitHubリポジトリを検索します
+func (c *GitHubClient) SearchRepositories(query string, page, perPage int) (map[string]interface{}, error) {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 30
+	}
+
+	url := fmt.Sprintf("%s/search/repositories?q=%s&page=%d&per_page=%d", apiBaseURL, query, page, perPage)
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// GetFileContents はリポジトリからファイルの内容を取得します
+func (c *GitHubClient) GetFileContents(owner, repo, path, branch string) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/contents/%s", apiBaseURL, owner, repo, path)
+	if branch != "" {
+		url += fmt.Sprintf("?ref=%s", branch)
+	}
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	// ファイルの内容をデコードする
+	if content, ok := result["content"].(string); ok {
+		decoded, err := base64.StdEncoding.DecodeString(strings.ReplaceAll(content, "\n", ""))
+		if err != nil {
+			return nil, err
+		}
+		result["decoded_content"] = string(decoded)
+	}
+
+	return result, nil
+}
+
+// CreateIssue は新しいイシューを作成します
+func (c *GitHubClient) CreateIssue(owner, repo string, options map[string]interface{}) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/issues", apiBaseURL, owner, repo)
+
+	jsonBody, err := json.Marshal(options)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := c.doRequest("POST", url, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// ListIssues はリポジトリのイシュー一覧を取得します
+func (c *GitHubClient) ListIssues(owner, repo string, options map[string]interface{}) ([]map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/issues", apiBaseURL, owner, repo)
+
+	// クエリパラメータを追加
+	queryParams := []string{}
+	for k, v := range options {
+		queryParams = append(queryParams, fmt.Sprintf("%s=%v", k, v))
+	}
+	if len(queryParams) > 0 {
+		url += "?" + strings.Join(queryParams, "&")
+	}
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// GetUserRepositories はユーザーのリポジトリ一覧を取得します
+func (c *GitHubClient) GetUserRepositories(username string, options map[string]interface{}) ([]map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/users/%s/repos", apiBaseURL, username)
+
+	// クエリパラメータを追加
+	queryParams := []string{}
+	for k, v := range options {
+		queryParams = append(queryParams, fmt.Sprintf("%s=%v", k, v))
+	}
+	if len(queryParams) > 0 {
+		url += "?" + strings.Join(queryParams, "&")
+	}
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// BuildGitHubServer はGitHubのMCPサーバーを構築します
+func BuildGitHubServer() {
+	// 環境変数からGitHubトークンを取得
+	token := os.Getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
+	if token == "" {
+		fmt.Println("Warning: GITHUB_PERSONAL_ACCESS_TOKEN environment variable not set. API rate limits will be restricted.")
+	}
+
+	// GitHubクライアントを初期化
+	client := NewGitHubClient(token)
+
+	// MCPサーバーを作成
+	s := server.NewMCPServer(
+		"GitHub API Server",
+		version,
+		server.WithResourceCapabilities(true, true),
+		server.WithLogging(),
+	)
+
+	// ツール1: リポジトリ検索
+	searchReposTool := mcp.NewTool("search_repositories",
+		mcp.WithDescription("Search for GitHub repositories"),
+		mcp.WithString("query",
+			mcp.Required(),
+			mcp.Description("Search query"),
+		),
+		mcp.WithNumber("page",
+			mcp.Description("Page number (default: 1)"),
+		),
+		mcp.WithNumber("perPage",
+			mcp.Description("Results per page (default: 30, max: 100)"),
+		),
+	)
+
+	s.AddTool(searchReposTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		query := request.Params.Arguments["query"].(string)
+
+		var page, perPage int = 1, 30
+		if p, ok := request.Params.Arguments["page"]; ok {
+			page = int(p.(float64))
+		}
+		if pp, ok := request.Params.Arguments["perPage"]; ok {
+			perPage = int(pp.(float64))
+		}
+
+		result, err := client.SearchRepositories(query, page, perPage)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール2: ファイル内容の取得
+	getFileContentsTool := mcp.NewTool("get_file_contents",
+		mcp.WithDescription("Get the contents of a file from a GitHub repository"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("File path within the repository"),
+		),
+		mcp.WithString("branch",
+			mcp.Description("Branch name (default: repository's default branch)"),
+		),
+	)
+
+	s.AddTool(getFileContentsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+		path := request.Params.Arguments["path"].(string)
+
+		var branch string
+		if b, ok := request.Params.Arguments["branch"]; ok {
+			branch = b.(string)
+		}
+
+		result, err := client.GetFileContents(owner, repo, path, branch)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール3: イシューの作成
+	createIssueTool := mcp.NewTool("create_issue",
+		mcp.WithDescription("Create a new issue in a GitHub repository"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithString("title",
+			mcp.Required(),
+			mcp.Description("Issue title"),
+		),
+		mcp.WithString("body",
+			mcp.Description("Issue body"),
+		),
+		mcp.WithArray("labels",
+			mcp.Description("Issue labels"),
+		),
+		mcp.WithArray("assignees",
+			mcp.Description("Users to assign to this issue"),
+		),
+	)
+
+	s.AddTool(createIssueTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+
+		options := make(map[string]interface{})
+		options["title"] = request.Params.Arguments["title"].(string)
+
+		if body, ok := request.Params.Arguments["body"]; ok {
+			options["body"] = body.(string)
+		}
+
+		if labels, ok := request.Params.Arguments["labels"]; ok {
+			options["labels"] = labels
+		}
+
+		if assignees, ok := request.Params.Arguments["assignees"]; ok {
+			options["assignees"] = assignees
+		}
+
+		result, err := client.CreateIssue(owner, repo, options)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール4: イシュー一覧の取得
+	listIssuesTool := mcp.NewTool("list_issues",
+		mcp.WithDescription("List issues in a GitHub repository"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithString("state",
+			mcp.Description("Issue state: open, closed, or all (default: open)"),
+			mcp.Enum("open", "closed", "all"),
+		),
+		mcp.WithString("sort",
+			mcp.Description("Sort field: created, updated, or comments (default: created)"),
+			mcp.Enum("created", "updated", "comments"),
+		),
+		mcp.WithString("direction",
+			mcp.Description("Sort direction: asc or desc (default: desc)"),
+			mcp.Enum("asc", "desc"),
+		),
+		mcp.WithNumber("per_page",
+			mcp.Description("Results per page (default: 30, max: 100)"),
+		),
+		mcp.WithNumber("page",
+			mcp.Description("Page number (default: 1)"),
+		),
+	)
+
+	s.AddTool(listIssuesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+
+		options := make(map[string]interface{})
+
+		if state, ok := request.Params.Arguments["state"]; ok {
+			options["state"] = state.(string)
+		}
+
+		if sort, ok := request.Params.Arguments["sort"]; ok {
+			options["sort"] = sort.(string)
+		}
+
+		if direction, ok := request.Params.Arguments["direction"]; ok {
+			options["direction"] = direction.(string)
+		}
+
+		if perPage, ok := request.Params.Arguments["per_page"]; ok {
+			options["per_page"] = int(perPage.(float64))
+		}
+
+		if page, ok := request.Params.Arguments["page"]; ok {
+			options["page"] = int(page.(float64))
+		}
+
+		result, err := client.ListIssues(owner, repo, options)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール5: ユーザーリポジトリの検索
+	searchUserReposTool := mcp.NewTool("search_user_repositories",
+		mcp.WithDescription("Get repositories for a specific GitHub user"),
+		mcp.WithString("username",
+			mcp.Required(),
+			mcp.Description("GitHub username"),
+		),
+		mcp.WithNumber("per_page",
+			mcp.Description("Results per page (default: 30, max: 100)"),
+		),
+		mcp.WithNumber("page",
+			mcp.Description("Page number (default: 1)"),
+		),
+		mcp.WithString("sort",
+			mcp.Description("Sort field: created, updated, pushed, full_name (default: full_name)"),
+			mcp.Enum("created", "updated", "pushed", "full_name"),
+		),
+	)
+
+	s.AddTool(searchUserReposTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		username := request.Params.Arguments["username"].(string)
+
+		options := make(map[string]interface{})
+
+		if perPage, ok := request.Params.Arguments["per_page"]; ok {
+			options["per_page"] = int(perPage.(float64))
+		}
+
+		if page, ok := request.Params.Arguments["page"]; ok {
+			options["page"] = int(page.(float64))
+		}
+
+		if sort, ok := request.Params.Arguments["sort"]; ok {
+			options["sort"] = sort.(string)
+		}
+
+		result, err := client.GetUserRepositories(username, options)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// サーバーを起動
+	if err := server.ServeStdio(s); err != nil {
+		fmt.Printf("Server error: %v\n", err)
+	}
+}

@@ -58,6 +58,17 @@
       ],
       "disabled": false,
       "autoApprove": []
+    },
+    "github": {
+      "command": "/home/nov/mcps-go/mcps-go",
+      "args": [
+        "github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_PAT"
+      },
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }
