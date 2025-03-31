@@ -252,6 +252,159 @@ func (c *GitHubClient) CreatePullRequest(owner, repo string, options map[string]
 	return result, nil
 }
 
+// CreatePullRequestReview はプルリクエストにレビューを作成します
+func (c *GitHubClient) CreatePullRequestReview(owner, repo string, pullNumber int, options map[string]interface{}) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/reviews", apiBaseURL, owner, repo, pullNumber)
+
+	jsonBody, err := json.Marshal(options)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := c.doRequest("POST", url, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// MergePullRequest はプルリクエストをマージします
+func (c *GitHubClient) MergePullRequest(owner, repo string, pullNumber int, options map[string]interface{}) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/merge", apiBaseURL, owner, repo, pullNumber)
+
+	jsonBody, err := json.Marshal(options)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := c.doRequest("PUT", url, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// GetPullRequestFiles はプルリクエストで変更されたファイル一覧を取得します
+func (c *GitHubClient) GetPullRequestFiles(owner, repo string, pullNumber int) ([]map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/files", apiBaseURL, owner, repo, pullNumber)
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// GetPullRequestStatus はプルリクエストのステータスを取得します
+func (c *GitHubClient) GetPullRequestStatus(owner, repo string, pullNumber int) (map[string]interface{}, error) {
+	// プルリクエストの詳細を取得
+	prURL := fmt.Sprintf("%s/repos/%s/%s/pulls/%d", apiBaseURL, owner, repo, pullNumber)
+	prData, err := c.doRequest("GET", prURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var pr map[string]interface{}
+	if err := json.Unmarshal(prData, &pr); err != nil {
+		return nil, err
+	}
+
+	// ステータスチェックを取得
+	headSHA, ok := pr["head"].(map[string]interface{})["sha"].(string)
+	if !ok {
+		return nil, fmt.Errorf("could not get head SHA from pull request")
+	}
+
+	statusURL := fmt.Sprintf("%s/repos/%s/%s/commits/%s/status", apiBaseURL, owner, repo, headSHA)
+	statusData, err := c.doRequest("GET", statusURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var status map[string]interface{}
+	if err := json.Unmarshal(statusData, &status); err != nil {
+		return nil, err
+	}
+
+	// 結果を組み合わせる
+	result := map[string]interface{}{
+		"pull_request": pr,
+		"status":       status,
+	}
+
+	return result, nil
+}
+
+// UpdatePullRequestBranch はプルリクエストのブランチを更新します
+func (c *GitHubClient) UpdatePullRequestBranch(owner, repo string, pullNumber int, expectedHeadSHA string) error {
+	url := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/update-branch", apiBaseURL, owner, repo, pullNumber)
+
+	options := map[string]interface{}{}
+	if expectedHeadSHA != "" {
+		options["expected_head_sha"] = expectedHeadSHA
+	}
+
+	jsonBody, err := json.Marshal(options)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.doRequest("PUT", url, strings.NewReader(string(jsonBody)))
+	return err
+}
+
+// GetPullRequestComments はプルリクエストのコメントを取得します
+func (c *GitHubClient) GetPullRequestComments(owner, repo string, pullNumber int) ([]map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/comments", apiBaseURL, owner, repo, pullNumber)
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// GetPullRequestReviews はプルリクエストのレビューを取得します
+func (c *GitHubClient) GetPullRequestReviews(owner, repo string, pullNumber int) ([]map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/reviews", apiBaseURL, owner, repo, pullNumber)
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // SearchCode はGitHub全体でコードを検索します
 func (c *GitHubClient) SearchCode(query string, options map[string]interface{}) (map[string]interface{}, error) {
 	url := fmt.Sprintf("%s/search/code?q=%s", apiBaseURL, query)
@@ -860,6 +1013,295 @@ func BuildGitHubServer() {
 		}
 
 		result, err := client.ListCommits(owner, repo, page, perPage, sha)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール11: プルリクエストレビューの作成
+	createPullRequestReviewTool := mcp.NewTool("create_pull_request_review",
+		mcp.WithDescription("Create a review on a pull request"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("pull_number",
+			mcp.Required(),
+			mcp.Description("Pull request number"),
+		),
+		mcp.WithString("event",
+			mcp.Description("Review event: APPROVE, REQUEST_CHANGES, COMMENT"),
+			mcp.Enum("APPROVE", "REQUEST_CHANGES", "COMMENT"),
+		),
+		mcp.WithString("body",
+			mcp.Description("Review body"),
+		),
+	)
+
+	s.AddTool(createPullRequestReviewTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+
+		options := make(map[string]interface{})
+
+		if event, ok := request.Params.Arguments["event"]; ok {
+			options["event"] = event.(string)
+		}
+
+		if body, ok := request.Params.Arguments["body"]; ok {
+			options["body"] = body.(string)
+		}
+
+		result, err := client.CreatePullRequestReview(owner, repo, pullNumber, options)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール12: プルリクエストのマージ
+	mergePullRequestTool := mcp.NewTool("merge_pull_request",
+		mcp.WithDescription("Merge a pull request"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("pull_number",
+			mcp.Required(),
+			mcp.Description("Pull request number"),
+		),
+		mcp.WithString("commit_title",
+			mcp.Description("Title for the automatic commit message"),
+		),
+		mcp.WithString("commit_message",
+			mcp.Description("Extra detail to append to automatic commit message"),
+		),
+		mcp.WithString("merge_method",
+			mcp.Description("Merge method to use: merge, squash, rebase"),
+			mcp.Enum("merge", "squash", "rebase"),
+		),
+	)
+
+	s.AddTool(mergePullRequestTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+
+		options := make(map[string]interface{})
+
+		if commitTitle, ok := request.Params.Arguments["commit_title"]; ok {
+			options["commit_title"] = commitTitle.(string)
+		}
+
+		if commitMessage, ok := request.Params.Arguments["commit_message"]; ok {
+			options["commit_message"] = commitMessage.(string)
+		}
+
+		if mergeMethod, ok := request.Params.Arguments["merge_method"]; ok {
+			options["merge_method"] = mergeMethod.(string)
+		}
+
+		result, err := client.MergePullRequest(owner, repo, pullNumber, options)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール13: プルリクエストのファイル一覧取得
+	getPullRequestFilesTool := mcp.NewTool("get_pull_request_files",
+		mcp.WithDescription("Get the list of files changed in a pull request"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("pull_number",
+			mcp.Required(),
+			mcp.Description("Pull request number"),
+		),
+	)
+
+	s.AddTool(getPullRequestFilesTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+
+		result, err := client.GetPullRequestFiles(owner, repo, pullNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール14: プルリクエストのステータス取得
+	getPullRequestStatusTool := mcp.NewTool("get_pull_request_status",
+		mcp.WithDescription("Get the combined status of all status checks for a pull request"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("pull_number",
+			mcp.Required(),
+			mcp.Description("Pull request number"),
+		),
+	)
+
+	s.AddTool(getPullRequestStatusTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+
+		result, err := client.GetPullRequestStatus(owner, repo, pullNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール15: プルリクエストブランチの更新
+	updatePullRequestBranchTool := mcp.NewTool("update_pull_request_branch",
+		mcp.WithDescription("Update a pull request branch with the latest changes from the base branch"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("pull_number",
+			mcp.Required(),
+			mcp.Description("Pull request number"),
+		),
+		mcp.WithString("expected_head_sha",
+			mcp.Description("The expected SHA of the pull request head"),
+		),
+	)
+
+	s.AddTool(updatePullRequestBranchTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+
+		var expectedHeadSHA string
+		if sha, ok := request.Params.Arguments["expected_head_sha"]; ok {
+			expectedHeadSHA = sha.(string)
+		}
+
+		err := client.UpdatePullRequestBranch(owner, repo, pullNumber, expectedHeadSHA)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(`{"success": true}`), nil
+	})
+
+	// ツール16: プルリクエストコメントの取得
+	getPullRequestCommentsTool := mcp.NewTool("get_pull_request_comments",
+		mcp.WithDescription("Get the review comments on a pull request"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("pull_number",
+			mcp.Required(),
+			mcp.Description("Pull request number"),
+		),
+	)
+
+	s.AddTool(getPullRequestCommentsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+
+		result, err := client.GetPullRequestComments(owner, repo, pullNumber)
+		if err != nil {
+			return nil, err
+		}
+
+		jsonResult, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(jsonResult)), nil
+	})
+
+	// ツール17: プルリクエストレビューの取得
+	getPullRequestReviewsTool := mcp.NewTool("get_pull_request_reviews",
+		mcp.WithDescription("Get the reviews on a pull request"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("pull_number",
+			mcp.Required(),
+			mcp.Description("Pull request number"),
+		),
+	)
+
+	s.AddTool(getPullRequestReviewsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		owner := request.Params.Arguments["owner"].(string)
+		repo := request.Params.Arguments["repo"].(string)
+		pullNumber := int(request.Params.Arguments["pull_number"].(float64))
+
+		result, err := client.GetPullRequestReviews(owner, repo, pullNumber)
 		if err != nil {
 			return nil, err
 		}
