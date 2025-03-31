@@ -6,7 +6,7 @@ on:
 permissions: write-all
 
 env:
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.23'
   COV_FILE: 'coverage.out'
 
 jobs:
