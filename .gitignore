@@ -49,6 +49,7 @@ target*
 env.yml
 env.yaml
 .clinerules
+.clinerules/*
 
 ### Cloud Functions ###
 .gcloudignore
