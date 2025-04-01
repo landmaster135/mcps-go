@@ -14,6 +14,7 @@ func createArithCalcServer() *server.MCPServer {
 		server.WithLogging(),
 	)
 	s = SetTwoNumbersInputtingCalcServer(s)
+	s = SetFileLineCountEvaluatorServer(s)
 	return s
 }
 
