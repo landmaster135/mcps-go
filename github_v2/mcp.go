@@ -22,6 +22,7 @@ func createGitHubServer() *server.MCPServer {
 		server.WithLogging(),
 	)
 	s = SetGitHubIssueServer(token, s)
+	s = SetGitHubPullRequestServer(token, s)
 
 	return s
 }
