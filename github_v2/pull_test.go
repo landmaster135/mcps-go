@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	mcp "github.com/mark3labs/mcp-go/mcp"
@@ -1512,7 +1513,6 @@ func TestHandleToGetPullRequestFiles(t *testing.T) {
 	}
 }
 
-
 // TestGetPullRequestStatus はGetPullRequestStatusメソッドをテストする
 func TestGetPullRequestStatus(t *testing.T) {
 	// テストケース
@@ -2949,6 +2949,472 @@ func TestHandleToGetPullRequestReviews(t *testing.T) {
 
 				// 正常に結果が返されたことを確認できれば十分とします
 				// 実際のAPIレスポンスは既にGetPullRequestReviewsメソッドのテストで検証済みです
+			}
+		})
+	}
+}
+
+// TestListPullRequests はListPullRequestsメソッドをテストする
+func TestListPullRequests(t *testing.T) {
+	// テストケース
+	tests := []struct {
+		name           string
+		owner          string
+		repo           string
+		options        map[string]interface{}
+		mockResponse   []map[string]interface{}
+		mockStatusCode int
+		mockError      error
+		expectError    bool
+	}{
+		{
+			name:    "正常系 - オプションなし",
+			owner:   "test_user",
+			repo:    "test_repo",
+			options: map[string]interface{}{},
+			mockResponse: []map[string]interface{}{
+				{
+					"id":     float64(123456),
+					"number": float64(1),
+					"title":  "テストプルリクエスト1",
+					"state":  "open",
+					"head": map[string]interface{}{
+						"ref": "feature-branch-1",
+					},
+					"base": map[string]interface{}{
+						"ref": "main",
+					},
+				},
+				{
+					"id":     float64(123457),
+					"number": float64(2),
+					"title":  "テストプルリクエスト2",
+					"state":  "open",
+					"head": map[string]interface{}{
+						"ref": "feature-branch-2",
+					},
+					"base": map[string]interface{}{
+						"ref": "main",
+					},
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name:  "正常系 - すべてのオプション",
+			owner: "test_user",
+			repo:  "test_repo",
+			options: map[string]interface{}{
+				"state":     "closed",
+				"sort":      "updated",
+				"direction": "asc",
+				"per_page":  "10",
+				"page":      "1",
+				"head":      "user:feature-branch",
+				"base":      "develop",
+			},
+			mockResponse: []map[string]interface{}{
+				{
+					"id":     float64(123458),
+					"number": float64(3),
+					"title":  "テストプルリクエスト3",
+					"state":  "closed",
+					"head": map[string]interface{}{
+						"ref": "feature-branch",
+					},
+					"base": map[string]interface{}{
+						"ref": "develop",
+					},
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name:         "正常系 - 空の結果",
+			owner:        "test_user",
+			repo:         "test_repo",
+			options:      map[string]interface{}{},
+			mockResponse: []map[string]interface{}{
+				// 空の配列
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name:           "異常系 - 認証エラー",
+			owner:          "test_user",
+			repo:           "test_repo",
+			options:        map[string]interface{}{},
+			mockResponse:   nil,
+			mockStatusCode: http.StatusUnauthorized,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name:           "異常系 - リポジトリが存在しない",
+			owner:          "nonexistent",
+			repo:           "nonexistent",
+			options:        map[string]interface{}{},
+			mockResponse:   nil,
+			mockStatusCode: http.StatusNotFound,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name:           "異常系 - ネットワークエラー",
+			owner:          "test_user",
+			repo:           "test_repo",
+			options:        map[string]interface{}{},
+			mockResponse:   nil,
+			mockStatusCode: 0,
+			mockError:      errors.New("ネットワーク接続エラー"),
+			expectError:    true,
+		},
+		{
+			name:           "異常系 - 不正なJSONレスポンス",
+			owner:          "test_user",
+			repo:           "test_repo",
+			options:        map[string]interface{}{},
+			mockResponse:   nil,
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// モックHTTPクライアントの作成
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					// ネットワークエラーのシミュレーション
+					if tc.mockError != nil {
+						return nil, tc.mockError
+					}
+
+					// リクエストの検証
+					expectedBaseURL := fmt.Sprintf("%s/repos/%s/%s/pulls", apiBaseURL, tc.owner, tc.repo)
+
+					// URLの基本部分を検証
+					if !strings.HasPrefix(req.URL.String(), expectedBaseURL) {
+						t.Errorf("期待されたURLの基本部分: %s, 実際: %s", expectedBaseURL, req.URL.String())
+					}
+
+					// クエリパラメータの検証
+					if len(tc.options) > 0 {
+						// URLにクエリパラメータが含まれていることを確認
+						if req.URL.RawQuery == "" {
+							t.Error("クエリパラメータが含まれていません")
+						}
+
+						// 各オプションがクエリパラメータに含まれていることを確認
+						q := req.URL.Query()
+						for k, v := range tc.options {
+							if q.Get(k) != fmt.Sprintf("%v", v) {
+								t.Errorf("クエリパラメータ %s の値が異なります。期待: %v, 実際: %s", k, v, q.Get(k))
+							}
+						}
+					}
+
+					if req.Method != "GET" {
+						t.Errorf("期待されたHTTPメソッド: GET, 実際: %s", req.Method)
+					}
+
+					if req.Header.Get("Accept") != "application/vnd.github.v3+json" {
+						t.Errorf("期待されたAcceptヘッダー: application/vnd.github.v3+json, 実際: %s", req.Header.Get("Accept"))
+					}
+
+					if req.Header.Get("Authorization") != "token test_token" {
+						t.Errorf("期待されたAuthorizationヘッダー: token test_token, 実際: %s", req.Header.Get("Authorization"))
+					}
+
+					// モックレスポンスの作成
+					var responseBody []byte
+					if tc.name == "異常系 - 不正なJSONレスポンス" {
+						responseBody = []byte("{invalid json}")
+					} else if tc.mockResponse != nil {
+						responseBody, _ = json.Marshal(tc.mockResponse)
+					}
+
+					return &http.Response{
+						StatusCode: tc.mockStatusCode,
+						Body:       io.NopCloser(bytes.NewReader(responseBody)),
+					}, nil
+				},
+			}
+
+			// GitHubClientのhttpClientをモックに置き換える
+			client := NewGitHubClient("test_token")
+			client.httpClient = mockClient
+
+			// テスト対象の関数を実行
+			result, err := client.ListPullRequests(tc.owner, tc.repo, tc.options)
+
+			// エラーの検証
+			if tc.expectError && err == nil {
+				t.Error("エラーが期待されていましたが、エラーは発生しませんでした")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("エラーは期待されていませんでしたが、エラーが発生しました: %v", err)
+			}
+
+			// 正常系の場合、結果を検証
+			if !tc.expectError {
+				if len(result) != len(tc.mockResponse) {
+					t.Errorf("期待された結果の長さ: %d, 実際: %d", len(tc.mockResponse), len(result))
+				}
+
+				// 各アイテムを検証
+				for i, expectedItem := range tc.mockResponse {
+					if i >= len(result) {
+						t.Errorf("インデックス %d の結果アイテムが見つかりません", i)
+						continue
+					}
+					actualItem := result[i]
+
+					// 主要なフィールドを検証
+					expectedFields := []string{"id", "number", "title", "state"}
+					for _, field := range expectedFields {
+						if expectedItem[field] != actualItem[field] {
+							t.Errorf("フィールド %s の値が異なります。期待: %v, 実際: %v", field, expectedItem[field], actualItem[field])
+						}
+					}
+
+					// headとbaseのrefフィールドを検証
+					if head, ok := expectedItem["head"].(map[string]interface{}); ok {
+						actualHead, ok := actualItem["head"].(map[string]interface{})
+						if !ok {
+							t.Error("結果のheadフィールドがマップではありません")
+						} else if head["ref"] != actualHead["ref"] {
+							t.Errorf("head.refの値が異なります。期待: %v, 実際: %v", head["ref"], actualHead["ref"])
+						}
+					}
+
+					if base, ok := expectedItem["base"].(map[string]interface{}); ok {
+						actualBase, ok := actualItem["base"].(map[string]interface{})
+						if !ok {
+							t.Error("結果のbaseフィールドがマップではありません")
+						} else if base["ref"] != actualBase["ref"] {
+							t.Errorf("base.refの値が異なります。期待: %v, 実際: %v", base["ref"], actualBase["ref"])
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestHandleToListPullRequests はHandleToListPullRequestsメソッドをテストする
+func TestHandleToListPullRequests(t *testing.T) {
+	// テストケース
+	tests := []struct {
+		name           string
+		arguments      map[string]interface{}
+		mockResponse   []map[string]interface{}
+		mockStatusCode int
+		mockError      error
+		expectError    bool
+	}{
+		{
+			name: "正常系 - 必須パラメータのみ",
+			arguments: map[string]interface{}{
+				"owner": "test_user",
+				"repo":  "test_repo",
+			},
+			mockResponse: []map[string]interface{}{
+				{
+					"id":     float64(123456),
+					"number": float64(1),
+					"title":  "テストプルリクエスト1",
+					"state":  "open",
+					"head": map[string]interface{}{
+						"ref": "feature-branch-1",
+					},
+					"base": map[string]interface{}{
+						"ref": "main",
+					},
+				},
+				{
+					"id":     float64(123457),
+					"number": float64(2),
+					"title":  "テストプルリクエスト2",
+					"state":  "open",
+					"head": map[string]interface{}{
+						"ref": "feature-branch-2",
+					},
+					"base": map[string]interface{}{
+						"ref": "main",
+					},
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name: "正常系 - すべてのパラメータ",
+			arguments: map[string]interface{}{
+				"owner":     "test_user",
+				"repo":      "test_repo",
+				"state":     "closed",
+				"sort":      "updated",
+				"direction": "asc",
+				"per_page":  "10",
+				"page":      "1",
+				"head":      "user:feature-branch",
+				"base":      "develop",
+			},
+			mockResponse: []map[string]interface{}{
+				{
+					"id":     float64(123458),
+					"number": float64(3),
+					"title":  "テストプルリクエスト3",
+					"state":  "closed",
+					"head": map[string]interface{}{
+						"ref": "feature-branch",
+					},
+					"base": map[string]interface{}{
+						"ref": "develop",
+					},
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name: "正常系 - 空の結果",
+			arguments: map[string]interface{}{
+				"owner": "test_user",
+				"repo":  "test_repo",
+				"state": "all",
+			},
+			mockResponse: []map[string]interface{}{
+				// 空の配列
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name: "異常系 - APIエラー",
+			arguments: map[string]interface{}{
+				"owner": "nonexistent",
+				"repo":  "nonexistent",
+			},
+			mockResponse:   nil,
+			mockStatusCode: http.StatusNotFound,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name: "異常系 - ネットワークエラー",
+			arguments: map[string]interface{}{
+				"owner": "test_user",
+				"repo":  "test_repo",
+			},
+			mockResponse:   nil,
+			mockStatusCode: 0,
+			mockError:      errors.New("ネットワーク接続エラー"),
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// モックHTTPクライアントの作成
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					// ネットワークエラーのシミュレーション
+					if tc.mockError != nil {
+						return nil, tc.mockError
+					}
+
+					// リクエストの検証
+					expectedBaseURL := fmt.Sprintf("%s/repos/%s/%s/pulls", apiBaseURL, tc.arguments["owner"].(string), tc.arguments["repo"].(string))
+
+					// URLの基本部分を検証
+					if !strings.HasPrefix(req.URL.String(), expectedBaseURL) {
+						t.Errorf("期待されたURLの基本部分: %s, 実際: %s", expectedBaseURL, req.URL.String())
+					}
+
+					// クエリパラメータの検証
+					if len(tc.arguments) > 2 { // owner, repo以外のパラメータがある場合
+						// URLにクエリパラメータが含まれていることを確認
+						if req.URL.RawQuery == "" {
+							t.Error("クエリパラメータが含まれていません")
+						}
+
+						// 各オプションがクエリパラメータに含まれていることを確認
+						q := req.URL.Query()
+						for k, v := range tc.arguments {
+							if k != "owner" && k != "repo" { // owner, repo以外のパラメータを検証
+								if q.Get(k) != fmt.Sprintf("%v", v) {
+									t.Errorf("クエリパラメータ %s の値が異なります。期待: %v, 実際: %s", k, v, q.Get(k))
+								}
+							}
+						}
+					}
+
+					if req.Method != "GET" {
+						t.Errorf("期待されたHTTPメソッド: GET, 実際: %s", req.Method)
+					}
+
+					// モックレスポンスの作成
+					var responseBody []byte
+					if tc.mockResponse != nil {
+						responseBody, _ = json.Marshal(tc.mockResponse)
+					}
+
+					return &http.Response{
+						StatusCode: tc.mockStatusCode,
+						Body:       io.NopCloser(bytes.NewReader(responseBody)),
+					}, nil
+				},
+			}
+
+			// GitHubClientのhttpClientをモックに置き換える
+			client := NewGitHubClient("test_token")
+			client.httpClient = mockClient
+
+			// リクエストの作成
+			request := mcp.CallToolRequest{}
+			// Paramsフィールドに直接アクセス
+			request.Params.Name = "list_pull_requests"
+			request.Params.Arguments = tc.arguments
+
+			// テスト対象の関数を実行
+			ctx := context.Background()
+			result, err := client.HandleToListPullRequests(ctx, request)
+
+			// エラーの検証
+			if tc.expectError && err == nil {
+				t.Error("エラーが期待されていましたが、エラーは発生しませんでした")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("エラーは期待されていませんでしたが、エラーが発生しました: %v", err)
+			}
+
+			// 正常系の場合、結果を検証
+			if !tc.expectError {
+				if result == nil {
+					t.Fatal("結果がnilです")
+				}
+
+				// 結果の内容を検証
+				// 注: mcp.CallToolResultの構造は外部パッケージで定義されているため、
+				// 直接内部構造にアクセスせず、結果が非nilであることだけを確認します
+				if result == nil {
+					t.Fatal("結果がnilです")
+				}
+
+				// 正常に結果が返されたことを確認できれば十分とします
+				// 実際のAPIレスポンスは既にListPullRequestsメソッドのテストで検証済みです
 			}
 		})
 	}
