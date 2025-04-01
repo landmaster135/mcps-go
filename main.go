@@ -8,11 +8,12 @@ import (
 	brave_search "example.com/mcps-go/brave_search"
 	datetime_calc "example.com/mcps-go/datetime_calc"
 	filesystem "example.com/mcps-go/filesystem"
+
 	// github "example.com/mcps-go/github"
 	github "example.com/mcps-go/github"
 	http_request "example.com/mcps-go/http_request"
-	util "example.com/mcps-go/util"
 	timezone "example.com/mcps-go/timezone"
+	util "example.com/mcps-go/util"
 	youtube_transcript "example.com/mcps-go/youtube_transcript"
 )
 
@@ -32,7 +33,7 @@ func main() {
 	a1 := args[1]
 	switch a1 {
 	case "arith_calc":
-		arith_calc.BuildCalculatorServer()
+		arith_calc.BuildArithCalculatorServer()
 	case "datetime_calc":
 		datetime_calc.BuildTimeCalculatorServer()
 	case "http_request":

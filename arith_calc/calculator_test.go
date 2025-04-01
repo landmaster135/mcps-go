@@ -1,16 +1,19 @@
 package arith_calc
 
 import (
+	"context"
+	"fmt"
 	"math"
 	"testing"
 
+	mcp "github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/assert"
 )
 
-// TestCalculatorAdd は Calculator の Add メソッドをテストします
-func TestCalculatorAdd(t *testing.T) {
-	// テスト用の Calculator インスタンスを作成
-	calc := Calculator{}
+// TestCalcClientAdd は CalcClient の Add メソッドをテストします
+func TestCalcClientAdd(t *testing.T) {
+	// テスト用の CalcClient インスタンスを作成
+	calc := CalcClient{}
 
 	// テストケースを定義
 	testCases := []struct {
@@ -60,10 +63,10 @@ func TestCalculatorAdd(t *testing.T) {
 	}
 }
 
-// TestCalculatorSubtract は Calculator の Subtract メソッドをテストします
-func TestCalculatorSubtract(t *testing.T) {
-	// テスト用の Calculator インスタンスを作成
-	calc := Calculator{}
+// TestCalcClientSubtract は CalcClient の Subtract メソッドをテストします
+func TestCalcClientSubtract(t *testing.T) {
+	// テスト用の CalcClient インスタンスを作成
+	calc := CalcClient{}
 
 	// テストケースを定義
 	testCases := []struct {
@@ -124,10 +127,10 @@ func TestCalculatorSubtract(t *testing.T) {
 	}
 }
 
-// TestCalculatorMultiply は Calculator の Multiply メソッドをテストします
-func TestCalculatorMultiply(t *testing.T) {
-	// テスト用の Calculator インスタンスを作成
-	calc := Calculator{}
+// TestCalcClientMultiply は CalcClient の Multiply メソッドをテストします
+func TestCalcClientMultiply(t *testing.T) {
+	// テスト用の CalcClient インスタンスを作成
+	calc := CalcClient{}
 
 	// テストケースを定義
 	testCases := []struct {
@@ -177,10 +180,10 @@ func TestCalculatorMultiply(t *testing.T) {
 	}
 }
 
-// TestCalculatorDivide は Calculator の Divide メソッドをテストします
-func TestCalculatorDivide(t *testing.T) {
-	// テスト用の Calculator インスタンスを作成
-	calc := Calculator{}
+// TestCalcClientDivide は CalcClient の Divide メソッドをテストします
+func TestCalcClientDivide(t *testing.T) {
+	// テスト用の CalcClient インスタンスを作成
+	calc := CalcClient{}
 
 	// テストケースを定義
 	testCases := []struct {
@@ -249,10 +252,10 @@ func TestCalculatorDivide(t *testing.T) {
 	}
 }
 
-// TestCalculatorEdgeCases は Calculator の境界値ケースをテストします
-func TestCalculatorEdgeCases(t *testing.T) {
-	// テスト用の Calculator インスタンスを作成
-	calc := Calculator{}
+// TestCalcClientEdgeCases は CalcClient の境界値ケースをテストします
+func TestCalcClientEdgeCases(t *testing.T) {
+	// テスト用の CalcClient インスタンスを作成
+	calc := CalcClient{}
 
 	// 大きな数値の演算
 	t.Run("大きな数値の加算", func(t *testing.T) {
@@ -272,4 +275,114 @@ func TestCalculatorEdgeCases(t *testing.T) {
 		result := calc.Add(0.1, 0.2)
 		assert.InDelta(t, 0.3, result, 1e-10)
 	})
+}
+
+// TestHandleToCalculate は HandleToCalculate メソッドをテストします
+func TestHandleToCalculate(t *testing.T) {
+	// テスト用の CalcClient インスタンスを作成
+	calc := NewCalcClient()
+	ctx := context.Background()
+
+	// テストケース
+	tests := []struct {
+		name          string
+		arguments     map[string]interface{}
+		expectedValue float64
+		expectError   bool
+		errorMessage  string
+	}{
+		{
+			name: "正常系 - 加算操作",
+			arguments: map[string]interface{}{
+				"operation": "add",
+				"x":         float64(5),
+				"y":         float64(3),
+			},
+			expectedValue: 8,
+			expectError:   false,
+		},
+		{
+			name: "正常系 - 減算操作",
+			arguments: map[string]interface{}{
+				"operation": "subtract",
+				"x":         float64(10),
+				"y":         float64(4),
+			},
+			expectedValue: 6,
+			expectError:   false,
+		},
+		{
+			name: "正常系 - 乗算操作",
+			arguments: map[string]interface{}{
+				"operation": "multiply",
+				"x":         float64(6),
+				"y":         float64(7),
+			},
+			expectedValue: 42,
+			expectError:   false,
+		},
+		{
+			name: "正常系 - 除算操作",
+			arguments: map[string]interface{}{
+				"operation": "divide",
+				"x":         float64(20),
+				"y":         float64(5),
+			},
+			expectedValue: 4,
+			expectError:   false,
+		},
+		{
+			name: "異常系 - ゼロによる除算",
+			arguments: map[string]interface{}{
+				"operation": "divide",
+				"x":         float64(5),
+				"y":         float64(0),
+			},
+			expectError:  true,
+			errorMessage: "division by zero is not allowed",
+		},
+		{
+			name: "正常系 - 不正な操作（デフォルト値を返す）",
+			arguments: map[string]interface{}{
+				"operation": "invalid",
+				"x":         float64(5),
+				"y":         float64(3),
+			},
+			expectedValue: 0, // 不正な操作の場合、デフォルト値の0が返される
+			expectError:   false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// リクエストの作成
+			request := mcp.CallToolRequest{}
+			// Paramsフィールドに直接アクセス
+			request.Params.Name = "calculate"
+			request.Params.Arguments = tc.arguments
+
+			// テスト対象の関数を実行
+			result, err := calc.HandleToCalculate(ctx, request)
+
+			// エラーの検証
+			if tc.expectError {
+				assert.Error(t, err)
+				if tc.errorMessage != "" {
+					assert.Equal(t, tc.errorMessage, err.Error())
+				}
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+
+				// 結果の内容を検証
+				assert.NotNil(t, result.Content)
+
+				// 結果の文字列表現に期待値が含まれていることを確認
+				resultStr := fmt.Sprintf("%v", result)
+				expectedStr := fmt.Sprintf("%v", tc.expectedValue)
+				assert.Contains(t, resultStr, expectedStr)
+			}
+		})
+	}
 }
