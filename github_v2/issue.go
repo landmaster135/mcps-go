@@ -79,6 +79,7 @@ func (c *GitHubClient) ListIssues(owner, repo string, options map[string]interfa
 	return result, nil
 }
 
+// HandleToListIssues はリポジトリのイシュー一覧を取得して、結果をJSON形式で返します
 func (c *GitHubClient) HandleToListIssues(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	owner := getRequiredStringParam(request.Params.Arguments, "owner")
 	repo := getRequiredStringParam(request.Params.Arguments, "repo")
@@ -134,6 +135,7 @@ func (c *GitHubClient) UpdateIssue(owner, repo string, issueNumber int, options 
 	return result, nil
 }
 
+// HandleToUpdateIssue は既存のイシューを更新して、結果をJSON形式で返します
 func (c *GitHubClient) HandleToUpdateIssue(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	owner := getRequiredStringParam(request.Params.Arguments, "owner")
 	repo := getRequiredStringParam(request.Params.Arguments, "repo")
@@ -186,6 +188,7 @@ func (c *GitHubClient) AddIssueComment(owner, repo string, issueNumber int, body
 	return result, nil
 }
 
+// HandleToAddIssueComment はイシューにコメントを追加して、結果をJSON形式で返します
 func (c *GitHubClient) HandleToAddIssueComment(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	owner := getRequiredStringParam(request.Params.Arguments, "owner")
 	repo := getRequiredStringParam(request.Params.Arguments, "repo")
@@ -200,6 +203,7 @@ func (c *GitHubClient) HandleToAddIssueComment(ctx context.Context, request mcp.
 	return returnJSONResult(result)
 }
 
+// SetGitHubIssueServer は受け取ったMCPサーバにGitHub用のツールを付与して、そのMCPサーバを返します。
 func SetGitHubIssueServer(token string, s *server.MCPServer) *server.MCPServer {
 	// GitHubクライアントを初期化
 	client := NewGitHubClient(token)
