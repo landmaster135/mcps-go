@@ -1278,3 +1278,519 @@ func TestHandleToGetFileContents(t *testing.T) {
 		})
 	}
 }
+
+// TestListCommits はListCommitsメソッドをテストする
+func TestListCommits(t *testing.T) {
+	// テストケース
+	tests := []struct {
+		name            string
+		owner           string
+		repo            string
+		page            int
+		perPage         int
+		sha             string
+		mockResponse    []map[string]interface{}
+		mockStatusCode  int
+		mockError       error
+		expectError     bool
+		expectedPage    int // 実際に使用されるページ番号
+		expectedPerPage int // 実際に使用される1ページあたりの結果数
+	}{
+		{
+			name:            "正常系 - コミット一覧取得成功",
+			owner:           "test_user",
+			repo:            "test_repo",
+			page:            1,
+			perPage:         30,
+			sha:             "",
+			expectedPage:    1,
+			expectedPerPage: 30,
+			mockResponse: []map[string]interface{}{
+				{
+					"sha":    "abc123def456",
+					"commit": map[string]interface{}{
+						"message": "最初のコミット",
+						"author": map[string]interface{}{
+							"name":  "Test User",
+							"email": "test@example.com",
+							"date":  "2023-01-01T12:00:00Z",
+						},
+					},
+					"author": map[string]interface{}{
+						"login": "test_user",
+					},
+				},
+				{
+					"sha":    "def456abc789",
+					"commit": map[string]interface{}{
+						"message": "2番目のコミット",
+						"author": map[string]interface{}{
+							"name":  "Test User",
+							"email": "test@example.com",
+							"date":  "2023-01-02T12:00:00Z",
+						},
+					},
+					"author": map[string]interface{}{
+						"login": "test_user",
+					},
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name:            "正常系 - 特定のブランチのコミット一覧",
+			owner:           "test_user",
+			repo:            "test_repo",
+			page:            1,
+			perPage:         30,
+			sha:             "develop",
+			expectedPage:    1,
+			expectedPerPage: 30,
+			mockResponse: []map[string]interface{}{
+				{
+					"sha":    "abc123def456",
+					"commit": map[string]interface{}{
+						"message": "developブランチのコミット",
+						"author": map[string]interface{}{
+							"name":  "Test User",
+							"email": "test@example.com",
+							"date":  "2023-01-01T12:00:00Z",
+						},
+					},
+					"author": map[string]interface{}{
+						"login": "test_user",
+					},
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name:            "正常系 - 空の結果",
+			owner:           "empty_user",
+			repo:            "empty_repo",
+			page:            1,
+			perPage:         30,
+			sha:             "",
+			expectedPage:    1,
+			expectedPerPage: 30,
+			mockResponse:    []map[string]interface{}{},
+			mockStatusCode:  http.StatusOK,
+			mockError:       nil,
+			expectError:     false,
+		},
+		{
+			name:            "異常系 - 認証エラー",
+			owner:           "test_user",
+			repo:            "test_repo",
+			page:            1,
+			perPage:         30,
+			sha:             "",
+			expectedPage:    1,
+			expectedPerPage: 30,
+			mockResponse:    nil,
+			mockStatusCode:  http.StatusUnauthorized,
+			mockError:       nil,
+			expectError:     true,
+		},
+		{
+			name:            "異常系 - リポジトリが存在しない",
+			owner:           "nonexistent",
+			repo:            "nonexistent",
+			page:            1,
+			perPage:         30,
+			sha:             "",
+			expectedPage:    1,
+			expectedPerPage: 30,
+			mockResponse:    nil,
+			mockStatusCode:  http.StatusNotFound,
+			mockError:       nil,
+			expectError:     true,
+		},
+		{
+			name:            "異常系 - ネットワークエラー",
+			owner:           "test_user",
+			repo:            "test_repo",
+			page:            1,
+			perPage:         30,
+			sha:             "",
+			expectedPage:    1,
+			expectedPerPage: 30,
+			mockResponse:    nil,
+			mockStatusCode:  0,
+			mockError:       errors.New("ネットワーク接続エラー"),
+			expectError:     true,
+		},
+		{
+			name:            "異常系 - 不正なJSONレスポンス",
+			owner:           "test_user",
+			repo:            "test_repo",
+			page:            1,
+			perPage:         30,
+			sha:             "",
+			expectedPage:    1,
+			expectedPerPage: 30,
+			mockStatusCode:  http.StatusOK,
+			mockError:       nil,
+			expectError:     true,
+		},
+		{
+			name:    "正常系 - pageが1未満の場合は1に設定される",
+			owner:   "test_user",
+			repo:    "test_repo",
+			page:    0,
+			perPage: 30,
+			sha:     "",
+			mockResponse: []map[string]interface{}{
+				{
+					"sha":    "abc123def456",
+					"commit": map[string]interface{}{
+						"message": "テストコミット",
+					},
+				},
+			},
+			mockStatusCode:  http.StatusOK,
+			mockError:       nil,
+			expectError:     false,
+			expectedPage:    1, // pageが0の場合、1に正規化される
+			expectedPerPage: 30,
+		},
+		{
+			name:    "正常系 - perPageが1未満の場合は30に設定される",
+			owner:   "test_user",
+			repo:    "test_repo",
+			page:    1,
+			perPage: 0,
+			sha:     "",
+			mockResponse: []map[string]interface{}{
+				{
+					"sha":    "abc123def456",
+					"commit": map[string]interface{}{
+						"message": "テストコミット",
+					},
+				},
+			},
+			mockStatusCode:  http.StatusOK,
+			mockError:       nil,
+			expectError:     false,
+			expectedPage:    1,
+			expectedPerPage: 30, // perPageが0の場合、30に正規化される
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// モックHTTPクライアントの作成
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					// ネットワークエラーのシミュレーション
+					if tc.mockError != nil {
+						return nil, tc.mockError
+					}
+
+					// リクエストの検証
+					// 正規化された値を使用してURLを構築
+					expectedPage := tc.page
+					if expectedPage < 1 {
+						expectedPage = 1
+					}
+					expectedPerPage := tc.perPage
+					if expectedPerPage < 1 || expectedPerPage > 100 {
+						expectedPerPage = 30
+					}
+
+					expectedURL := fmt.Sprintf("%s/repos/%s/%s/commits?page=%d&per_page=%d", apiBaseURL, tc.owner, tc.repo, expectedPage, expectedPerPage)
+					if tc.sha != "" {
+						expectedURL += fmt.Sprintf("&sha=%s", tc.sha)
+					}
+					if req.URL.String() != expectedURL {
+						t.Errorf("期待されたURL: %s, 実際: %s", expectedURL, req.URL.String())
+					}
+
+					if req.Method != "GET" {
+						t.Errorf("期待されたHTTPメソッド: GET, 実際: %s", req.Method)
+					}
+
+					if req.Header.Get("Accept") != "application/vnd.github.v3+json" {
+						t.Errorf("期待されたAcceptヘッダー: application/vnd.github.v3+json, 実際: %s", req.Header.Get("Accept"))
+					}
+
+					if req.Header.Get("Authorization") != "token test_token" {
+						t.Errorf("期待されたAuthorizationヘッダー: token test_token, 実際: %s", req.Header.Get("Authorization"))
+					}
+
+					// モックレスポンスの作成
+					var responseBody []byte
+					if tc.name == "異常系 - 不正なJSONレスポンス" {
+						responseBody = []byte("{invalid json}")
+					} else if tc.mockResponse != nil {
+						responseBody, _ = json.Marshal(tc.mockResponse)
+					}
+
+					return &http.Response{
+						StatusCode: tc.mockStatusCode,
+						Body:       io.NopCloser(bytes.NewReader(responseBody)),
+					}, nil
+				},
+			}
+
+			// GitHubClientのhttpClientをモックに置き換える
+			client := NewGitHubClient("test_token")
+			client.httpClient = mockClient
+
+			// テスト対象の関数を実行
+			result, err := client.ListCommits(tc.owner, tc.repo, tc.page, tc.perPage, tc.sha)
+
+			// エラーの検証
+			if tc.expectError && err == nil {
+				t.Error("エラーが期待されていましたが、エラーは発生しませんでした")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("エラーは期待されていませんでしたが、エラーが発生しました: %v", err)
+			}
+
+			// 正常系の場合、結果を検証
+			if !tc.expectError && tc.mockResponse != nil {
+				if len(result) != len(tc.mockResponse) {
+					t.Errorf("期待された結果の長さ: %d, 実際: %d", len(tc.mockResponse), len(result))
+				}
+
+				// 各アイテムを検証
+				for i, expectedItem := range tc.mockResponse {
+					if i >= len(result) {
+						t.Errorf("インデックス %d の結果アイテムが見つかりません", i)
+						continue
+					}
+					actualItem := result[i]
+
+					// shaフィールドを検証
+					if expectedItem["sha"] != actualItem["sha"] {
+						t.Errorf("shaの値が異なります。期待: %v, 実際: %v", expectedItem["sha"], actualItem["sha"])
+					}
+
+					// commitフィールドを検証
+					if commit, ok := expectedItem["commit"].(map[string]interface{}); ok {
+						actualCommit, ok := actualItem["commit"].(map[string]interface{})
+						if !ok {
+							t.Error("結果のcommitフィールドがマップではありません")
+						} else if commit["message"] != actualCommit["message"] {
+							t.Errorf("commit.messageの値が異なります。期待: %v, 実際: %v", commit["message"], actualCommit["message"])
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestHandleToListCommits はHandleToListCommitsメソッドをテストする
+func TestHandleToListCommits(t *testing.T) {
+	// テストケース
+	tests := []struct {
+		name           string
+		arguments      map[string]interface{}
+		mockResponse   []map[string]interface{}
+		mockStatusCode int
+		mockError      error
+		expectError    bool
+	}{
+		{
+			name: "正常系 - 必須パラメータのみ",
+			arguments: map[string]interface{}{
+				"owner": "test_user",
+				"repo":  "test_repo",
+			},
+			mockResponse: []map[string]interface{}{
+				{
+					"sha":    "abc123def456",
+					"commit": map[string]interface{}{
+						"message": "最初のコミット",
+						"author": map[string]interface{}{
+							"name":  "Test User",
+							"email": "test@example.com",
+							"date":  "2023-01-01T12:00:00Z",
+						},
+					},
+					"author": map[string]interface{}{
+						"login": "test_user",
+					},
+				},
+				{
+					"sha":    "def456abc789",
+					"commit": map[string]interface{}{
+						"message": "2番目のコミット",
+						"author": map[string]interface{}{
+							"name":  "Test User",
+							"email": "test@example.com",
+							"date":  "2023-01-02T12:00:00Z",
+						},
+					},
+					"author": map[string]interface{}{
+						"login": "test_user",
+					},
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name: "正常系 - すべてのパラメータ",
+			arguments: map[string]interface{}{
+				"owner":    "test_user",
+				"repo":     "test_repo",
+				"page":     float64(2),
+				"per_page": float64(10),
+				"sha":      "develop",
+			},
+			mockResponse: []map[string]interface{}{
+				{
+					"sha":    "abc123def456",
+					"commit": map[string]interface{}{
+						"message": "developブランチのコミット",
+						"author": map[string]interface{}{
+							"name":  "Test User",
+							"email": "test@example.com",
+							"date":  "2023-01-01T12:00:00Z",
+						},
+					},
+					"author": map[string]interface{}{
+						"login": "test_user",
+					},
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name: "正常系 - 空の結果",
+			arguments: map[string]interface{}{
+				"owner": "empty_user",
+				"repo":  "empty_repo",
+			},
+			mockResponse:   []map[string]interface{}{},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name: "異常系 - APIエラー",
+			arguments: map[string]interface{}{
+				"owner": "nonexistent",
+				"repo":  "nonexistent",
+			},
+			mockResponse:   nil,
+			mockStatusCode: http.StatusNotFound,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name: "異常系 - ネットワークエラー",
+			arguments: map[string]interface{}{
+				"owner": "test_user",
+				"repo":  "test_repo",
+			},
+			mockResponse:   nil,
+			mockStatusCode: 0,
+			mockError:      errors.New("ネットワーク接続エラー"),
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// モックHTTPクライアントの作成
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					// ネットワークエラーのシミュレーション
+					if tc.mockError != nil {
+						return nil, tc.mockError
+					}
+
+					// リクエストの検証
+					owner := tc.arguments["owner"].(string)
+					repo := tc.arguments["repo"].(string)
+					page := 1
+					perPage := 30
+					var sha string
+
+					if pageArg, ok := tc.arguments["page"]; ok {
+						page = int(pageArg.(float64))
+					}
+					if perPageArg, ok := tc.arguments["per_page"]; ok {
+						perPage = int(perPageArg.(float64))
+					}
+					if shaArg, ok := tc.arguments["sha"]; ok {
+						sha = shaArg.(string)
+					}
+
+					expectedURL := fmt.Sprintf("%s/repos/%s/%s/commits?page=%d&per_page=%d", apiBaseURL, owner, repo, page, perPage)
+					if sha != "" {
+						expectedURL += fmt.Sprintf("&sha=%s", sha)
+					}
+					if req.URL.String() != expectedURL {
+						t.Errorf("期待されたURL: %s, 実際: %s", expectedURL, req.URL.String())
+					}
+
+					if req.Method != "GET" {
+						t.Errorf("期待されたHTTPメソッド: GET, 実際: %s", req.Method)
+					}
+
+					// モックレスポンスの作成
+					var responseBody []byte
+					if tc.mockResponse != nil {
+						responseBody, _ = json.Marshal(tc.mockResponse)
+					}
+
+					return &http.Response{
+						StatusCode: tc.mockStatusCode,
+						Body:       io.NopCloser(bytes.NewReader(responseBody)),
+					}, nil
+				},
+			}
+
+			// GitHubClientのhttpClientをモックに置き換える
+			client := NewGitHubClient("test_token")
+			client.httpClient = mockClient
+
+			// リクエストの作成
+			request := mcp.CallToolRequest{}
+			// Paramsフィールドに直接アクセス
+			request.Params.Name = "list_commits"
+			request.Params.Arguments = tc.arguments
+
+			// テスト対象の関数を実行
+			ctx := context.Background()
+			result, err := client.HandleToListCommits(ctx, request)
+
+			// エラーの検証
+			if tc.expectError && err == nil {
+				t.Error("エラーが期待されていましたが、エラーは発生しませんでした")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("エラーは期待されていませんでしたが、エラーが発生しました: %v", err)
+			}
+
+			// 正常系の場合、結果を検証
+			if !tc.expectError {
+				if result == nil {
+					t.Fatal("結果がnilです")
+				}
+
+				// 結果の内容を検証
+				// 注: mcp.CallToolResultの構造は外部パッケージで定義されているため、
+				// 直接内部構造にアクセスせず、結果が非nilであることだけを確認します
+				if result == nil {
+					t.Fatal("結果がnilです")
+				}
+
+				// 正常に結果が返されたことを確認できれば十分とします
+				// 実際のAPIレスポンスは既にListCommitsメソッドのテストで検証済みです
+			}
+		})
+	}
+}

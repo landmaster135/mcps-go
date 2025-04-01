@@ -11,6 +11,49 @@ import (
 	server "github.com/mark3labs/mcp-go/server"
 )
 
+// ListCommits はリポジトリのコミット一覧を取得します
+func (c *GitHubClient) ListCommits(owner, repo string, page, perPage int, sha string) ([]map[string]interface{}, error) {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 30
+	}
+
+	url := fmt.Sprintf("%s/repos/%s/%s/commits?page=%d&per_page=%d", apiBaseURL, owner, repo, page, perPage)
+	if sha != "" {
+		url += fmt.Sprintf("&sha=%s", sha)
+	}
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// HandleToListCommits はリポジトリのコミット一覧を取得して、結果をJSON形式で返します
+func (c *GitHubClient) HandleToListCommits(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	owner := getRequiredStringParam(request.Params.Arguments, "owner")
+	repo := getRequiredStringParam(request.Params.Arguments, "repo")
+	page := getNumberParam(request.Params.Arguments, "page", 1)
+	perPage := getNumberParam(request.Params.Arguments, "per_page", 30)
+	sha, _ := getStringParam(request.Params.Arguments, "sha")
+
+	result, err := c.ListCommits(owner, repo, page, perPage, sha)
+	if err != nil {
+		return nil, err
+	}
+
+	return returnJSONResult(result)
+}
+
 // SearchRepositories はGitHubリポジトリを検索します
 func (c *GitHubClient) SearchRepositories(query string, page, perPage int) (map[string]interface{}, error) {
 	if page < 1 {
@@ -220,6 +263,29 @@ func SetGitHubRepositoryServer(token string, s *server.MCPServer) *server.MCPSer
 		),
 	)
 	s.AddTool(getFileContentsTool, client.HandleToGetFileContents)
+
+	// ツール4: コミット一覧の取得
+	listCommitsTool := mcp.NewTool("list_commits",
+		mcp.WithDescription("Get list of commits of a branch in a GitHub repository"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("page",
+			mcp.Description("Page number (default: 1)"),
+		),
+		mcp.WithNumber("per_page",
+			mcp.Description("Results per page (default: 30, max: 100)"),
+		),
+		mcp.WithString("sha",
+			mcp.Description("SHA or branch name to start listing commits from"),
+		),
+	)
+	s.AddTool(listCommitsTool, client.HandleToListCommits)
 
 	return s
 }
