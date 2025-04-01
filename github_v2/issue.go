@@ -208,7 +208,7 @@ func SetGitHubIssueServer(token string, s *server.MCPServer) *server.MCPServer {
 	// GitHubクライアントを初期化
 	client := NewGitHubClient(token)
 
-	// ツール3: イシューの作成
+	// ツール1: イシューの作成
 	createIssueTool := mcp.NewTool("create_issue",
 		mcp.WithDescription("Create a new issue in a GitHub repository"),
 		mcp.WithString("owner",
@@ -235,7 +235,7 @@ func SetGitHubIssueServer(token string, s *server.MCPServer) *server.MCPServer {
 	)
 	s.AddTool(createIssueTool, client.HandleToCreateIssue)
 
-	// ツール4: イシュー一覧の取得
+	// ツール2: イシュー一覧の取得
 	listIssuesTool := mcp.NewTool("list_issues",
 		mcp.WithDescription("List issues in a GitHub repository"),
 		mcp.WithString("owner",
@@ -267,7 +267,7 @@ func SetGitHubIssueServer(token string, s *server.MCPServer) *server.MCPServer {
 	)
 	s.AddTool(listIssuesTool, client.HandleToListIssues)
 
-	// ツール8: イシューの更新
+	// ツール3: イシューの更新
 	updateIssueTool := mcp.NewTool("update_issue",
 		mcp.WithDescription("Update an existing issue in a GitHub repository"),
 		mcp.WithString("owner",
@@ -302,7 +302,7 @@ func SetGitHubIssueServer(token string, s *server.MCPServer) *server.MCPServer {
 
 	s.AddTool(updateIssueTool, client.HandleToUpdateIssue)
 
-	// ツール9: イシューコメントの追加
+	// ツール4: イシューコメントの追加
 	addIssueCommentTool := mcp.NewTool("add_issue_comment",
 		mcp.WithDescription("Add a comment to an existing issue"),
 		mcp.WithString("owner",
