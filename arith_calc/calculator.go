@@ -3,6 +3,7 @@ package arith_calc
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	mcp "github.com/mark3labs/mcp-go/mcp"
 	server "github.com/mark3labs/mcp-go/server"
@@ -32,6 +33,15 @@ func (c *CalcClient) Divide(x float64, y float64) float64 {
 	return result
 }
 
+// Sum は複数の数値を合計するメソッドです
+func (c *CalcClient) Sum(arr []float64) float64 {
+	result := 0.0
+	for _, number := range arr {
+		result += number
+	}
+	return result
+}
+
 func (c *CalcClient) HandleToCalculate(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	op := request.Params.Arguments["operation"].(string)
 	x := request.Params.Arguments["x"].(float64)
@@ -55,12 +65,34 @@ func (c *CalcClient) HandleToCalculate(ctx context.Context, request mcp.CallTool
 	return mcp.FormatNumberResult(result), nil
 }
 
+func (c *CalcClient) HandleToCalculateWithArray(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	op := request.Params.Arguments["operation"].(string)
+	arr := request.Params.Arguments["numbers"].([]interface{})
+	floatSlice := make([]float64, len(arr))
+	for i, v := range arr {
+		if f, ok := v.(float64); ok {
+			floatSlice[i] = f
+		} else {
+			// 型アサーションに失敗した場合の処理
+			return nil, fmt.Errorf("%v is incompatible for float64", v)
+		}
+	}
+
+	var result float64
+	switch op {
+	case "sum":
+		result = c.Sum(floatSlice)
+	}
+
+	return mcp.FormatNumberResult(result), nil
+}
+
 func SetTwoNumbersInputtingCalcServer(s *server.MCPServer) *server.MCPServer {
 	// Calcクライアントを初期化
 	client := NewCalcClient()
 
 	tool := mcp.NewTool("calculate",
-		mcp.WithDescription("Perform basic arithmetic calculations"),
+		mcp.WithDescription("Perform basic arithmetic calculations with two numbers"),
 		mcp.WithString("operation",
 			mcp.Required(),
 			mcp.Description("The arithmetic operation to perform"),
@@ -76,6 +108,20 @@ func SetTwoNumbersInputtingCalcServer(s *server.MCPServer) *server.MCPServer {
 		),
 	)
 	s.AddTool(tool, client.HandleToCalculate)
+
+	toolWithArray := mcp.NewTool("calculate_with_multiple_numbers",
+		mcp.WithDescription("Perform basic arithmetic calculations with multiple numbers"),
+		mcp.WithString("operation",
+			mcp.Required(),
+			mcp.Description("The arithmetic operation to perform with multiple numbers"),
+			mcp.Enum("sum"),
+		),
+		mcp.WithArray("numbers",
+			mcp.Required(),
+			mcp.Description("Multiple numbers"),
+		),
+	)
+	s.AddTool(toolWithArray, client.HandleToCalculateWithArray)
 
 	return s
 }
