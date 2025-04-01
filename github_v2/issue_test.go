@@ -8,49 +8,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"reflect"
 	"strings"
 	"testing"
 
 	mcp "github.com/mark3labs/mcp-go/mcp"
 	server "github.com/mark3labs/mcp-go/server"
 )
-
-// マップの比較用ヘルパー関数
-func compareMaps(t *testing.T, expected, actual map[string]interface{}) bool {
-	// キーの数が同じか確認
-	if len(expected) != len(actual) {
-		t.Errorf("マップのサイズが異なります。期待: %d, 実際: %d", len(expected), len(actual))
-		return false
-	}
-
-	// 各キーと値を個別に比較
-	for k, expectedVal := range expected {
-		actualVal, exists := actual[k]
-		if !exists {
-			t.Errorf("キー %s が実際のマップに存在しません", k)
-			return false
-		}
-
-		// 値の型を確認
-		expectedType := reflect.TypeOf(expectedVal)
-		actualType := reflect.TypeOf(actualVal)
-		if expectedType != actualType {
-			t.Errorf("キー %s の値の型が異なります。期待: %v, 実際: %v", k, expectedType, actualType)
-			return false
-		}
-
-		// 値を文字列に変換して比較
-		expectedStr := fmt.Sprintf("%v", expectedVal)
-		actualStr := fmt.Sprintf("%v", actualVal)
-		if expectedStr != actualStr {
-			t.Errorf("キー %s の値が異なります。期待: %v, 実際: %v", k, expectedStr, actualStr)
-			return false
-		}
-	}
-
-	return true
-}
 
 // TestSetGitHubIssueServer はSetGitHubIssueServer関数をテストする
 func TestSetGitHubIssueServer(t *testing.T) {
@@ -988,8 +951,8 @@ func TestHandleToUpdateIssue(t *testing.T) {
 		{
 			name: "正常系 - 必須パラメータのみ",
 			arguments: map[string]interface{}{
-				"owner":       "test_user",
-				"repo":        "test_repo",
+				"owner":        "test_user",
+				"repo":         "test_repo",
 				"issue_number": float64(1),
 			},
 			mockResponse: map[string]interface{}{
@@ -1005,14 +968,14 @@ func TestHandleToUpdateIssue(t *testing.T) {
 		{
 			name: "正常系 - すべてのパラメータ",
 			arguments: map[string]interface{}{
-				"owner":       "test_user",
-				"repo":        "test_repo",
+				"owner":        "test_user",
+				"repo":         "test_repo",
 				"issue_number": float64(1),
-				"title":       "更新されたイシュー",
-				"body":        "これは更新されたイシューです",
-				"state":       "closed",
-				"labels":      []interface{}{"bug", "help wanted"},
-				"assignees":   []interface{}{"test_user"},
+				"title":        "更新されたイシュー",
+				"body":         "これは更新されたイシューです",
+				"state":        "closed",
+				"labels":       []interface{}{"bug", "help wanted"},
+				"assignees":    []interface{}{"test_user"},
 			},
 			mockResponse: map[string]interface{}{
 				"id":        float64(123456),
@@ -1030,10 +993,10 @@ func TestHandleToUpdateIssue(t *testing.T) {
 		{
 			name: "異常系 - APIエラー",
 			arguments: map[string]interface{}{
-				"owner":       "test_user",
-				"repo":        "test_repo",
+				"owner":        "test_user",
+				"repo":         "test_repo",
 				"issue_number": float64(999),
-				"title":       "更新されたイシュー",
+				"title":        "更新されたイシュー",
 			},
 			mockResponse: map[string]interface{}{
 				"message":           "Not Found",
@@ -1162,11 +1125,11 @@ func TestAddIssueComment(t *testing.T) {
 		invalidJsonResponse bool // 不正なJSONレスポンスをシミュレートするフラグ
 	}{
 		{
-			name:                "正常系 - コメント追加成功",
-			owner:               "test_user",
-			repo:                "test_repo",
-			issueNumber:         1,
-			body:                "これはテストコメントです",
+			name:        "正常系 - コメント追加成功",
+			owner:       "test_user",
+			repo:        "test_repo",
+			issueNumber: 1,
+			body:        "これはテストコメントです",
 			mockResponse: map[string]interface{}{
 				"id":   float64(123456),
 				"body": "これはテストコメントです",
@@ -1181,11 +1144,11 @@ func TestAddIssueComment(t *testing.T) {
 			invalidJsonResponse: false,
 		},
 		{
-			name:                "異常系 - 認証エラー",
-			owner:               "test_user",
-			repo:                "test_repo",
-			issueNumber:         1,
-			body:                "これはテストコメントです",
+			name:        "異常系 - 認証エラー",
+			owner:       "test_user",
+			repo:        "test_repo",
+			issueNumber: 1,
+			body:        "これはテストコメントです",
 			mockResponse: map[string]interface{}{
 				"message":           "Bad credentials",
 				"documentation_url": "https://docs.github.com/rest",
@@ -1197,11 +1160,11 @@ func TestAddIssueComment(t *testing.T) {
 			invalidJsonResponse: false,
 		},
 		{
-			name:                "異常系 - イシューが存在しない",
-			owner:               "test_user",
-			repo:                "test_repo",
-			issueNumber:         999,
-			body:                "これはテストコメントです",
+			name:        "異常系 - イシューが存在しない",
+			owner:       "test_user",
+			repo:        "test_repo",
+			issueNumber: 999,
+			body:        "これはテストコメントです",
 			mockResponse: map[string]interface{}{
 				"message":           "Not Found",
 				"documentation_url": "https://docs.github.com/rest",

@@ -3,20 +3,58 @@ package github_v2
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 )
 
-// MockHTTPClient はHTTPクライアントのモック
+// 'MockHTTPClient' struct is a mock for HTTP client.
 type MockHTTPClient struct {
 	DoFunc func(req *http.Request) (*http.Response, error)
 }
 
-// Do はHTTPリクエストを実行する
+// 'Do' method executes HTTP request.
 func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	return m.DoFunc(req)
+}
+
+// マップの比較用ヘルパー関数
+func compareMaps(t *testing.T, expected, actual map[string]interface{}) bool {
+	// キーの数が同じか確認
+	if len(expected) != len(actual) {
+		t.Errorf("マップのサイズが異なります。期待: %d, 実際: %d", len(expected), len(actual))
+		return false
+	}
+
+	// 各キーと値を個別に比較
+	for k, expectedVal := range expected {
+		actualVal, exists := actual[k]
+		if !exists {
+			t.Errorf("キー %s が実際のマップに存在しません", k)
+			return false
+		}
+
+		// 値の型を確認
+		expectedType := reflect.TypeOf(expectedVal)
+		actualType := reflect.TypeOf(actualVal)
+		if expectedType != actualType {
+			t.Errorf("キー %s の値の型が異なります。期待: %v, 実際: %v", k, expectedType, actualType)
+			return false
+		}
+
+		// 値を文字列に変換して比較
+		expectedStr := fmt.Sprintf("%v", expectedVal)
+		actualStr := fmt.Sprintf("%v", actualVal)
+		if expectedStr != actualStr {
+			t.Errorf("キー %s の値が異なります。期待: %v, 実際: %v", k, expectedStr, actualStr)
+			return false
+		}
+	}
+
+	return true
 }
 
 // ヘルパー関数のテスト
@@ -282,9 +320,9 @@ func TestNewGitHubClient(t *testing.T) {
 // TestGitHubErrorError はGitHubError構造体のErrorメソッドをテストする
 func TestGitHubErrorError(t *testing.T) {
 	tests := []struct {
-		name       string
-		ghError    GitHubError
-		expected   string
+		name     string
+		ghError  GitHubError
+		expected string
 	}{
 		{
 			name: "基本的なエラーメッセージ",

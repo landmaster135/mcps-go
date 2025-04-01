@@ -48,6 +48,7 @@ go.work.sum
 target*
 env.yml
 env.yaml
+.clinerules
 
 ### Cloud Functions ###
 .gcloudignore

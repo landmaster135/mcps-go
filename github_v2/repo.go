@@ -101,7 +101,7 @@ func (c *GitHubClient) GetUserRepositories(username string, options map[string]i
 		queryParams = append(queryParams, fmt.Sprintf("%s=%v", k, v))
 	}
 	if len(queryParams) > 0 {
-		url += "?" + strings.Join(queryParams, "&")
+		url += "?=" + strings.Join(queryParams, "&")
 	}
 
 	data, err := c.doRequest("GET", url, nil)
