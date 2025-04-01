@@ -23,6 +23,7 @@ func createGitHubServer() *server.MCPServer {
 	)
 	s = SetGitHubIssueServer(token, s)
 	s = SetGitHubPullRequestServer(token, s)
+	s = SetGitHubRepositoryServer(token, s)
 
 	return s
 }

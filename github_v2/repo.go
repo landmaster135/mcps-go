@@ -1,0 +1,159 @@
+package github_v2
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	mcp "github.com/mark3labs/mcp-go/mcp"
+	server "github.com/mark3labs/mcp-go/server"
+)
+
+// SearchRepositories はGitHubリポジトリを検索します
+func (c *GitHubClient) SearchRepositories(query string, page, perPage int) (map[string]interface{}, error) {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 30
+	}
+
+	url := fmt.Sprintf("%s/search/repositories?q=%s&page=%d&per_page=%d", apiBaseURL, query, page, perPage)
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// HandleToSearchRepositories はGitHubリポジトリを検索して、結果をJSON形式で返します
+func (c *GitHubClient) HandleToSearchRepositories(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	query := getRequiredStringParam(request.Params.Arguments, "query")
+	page := getNumberParam(request.Params.Arguments, "page", 1)
+	perPage := getNumberParam(request.Params.Arguments, "per_page", 30)
+
+	result, err := c.SearchRepositories(query, page, perPage)
+	if err != nil {
+		return nil, err
+	}
+
+	return returnJSONResult(result)
+}
+
+// GetUserRepositories はユーザーのリポジトリ一覧を取得します
+func (c *GitHubClient) GetUserRepositories(username string, options map[string]interface{}) ([]map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/users/%s/repos", apiBaseURL, username)
+
+	// クエリパラメータを追加
+	queryParams := []string{}
+	for k, v := range options {
+		queryParams = append(queryParams, fmt.Sprintf("%s=%v", k, v))
+	}
+	if len(queryParams) > 0 {
+		url += "?" + strings.Join(queryParams, "&")
+	}
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// HandleToGetUserRepositories はユーザーのリポジトリ一覧を取得して、結果をJSON形式で返します
+func (c *GitHubClient) HandleToGetUserRepositories(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	username := getRequiredStringParam(request.Params.Arguments, "username")
+
+	options := make(map[string]interface{})
+
+	// 数値オプションパラメータを追加
+	if perPage, ok := request.Params.Arguments["per_page"]; ok {
+		options["per_page"] = int(perPage.(float64))
+	}
+	if page, ok := request.Params.Arguments["page"]; ok {
+		options["page"] = int(page.(float64))
+	}
+
+	// 文字列オプションパラメータを追加
+	if sort, ok := getStringParam(request.Params.Arguments, "sort"); ok {
+		options["sort"] = sort
+	}
+	if direction, ok := getStringParam(request.Params.Arguments, "direction"); ok {
+		options["direction"] = direction
+	}
+	if type_, ok := getStringParam(request.Params.Arguments, "type"); ok {
+		options["type"] = type_
+	}
+
+	result, err := c.GetUserRepositories(username, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return returnJSONResult(result)
+}
+
+// SetGitHubRepositoryServer は受け取ったMCPサーバにGitHubリポジトリ用のツールを付与して、そのMCPサーバを返します。
+func SetGitHubRepositoryServer(token string, s *server.MCPServer) *server.MCPServer {
+	// GitHubクライアントを初期化
+	client := NewGitHubClient(token)
+
+	// ツール1: リポジトリ検索
+	searchRepositoriesTool := mcp.NewTool("search_repositories",
+		mcp.WithDescription("Search for GitHub repositories"),
+		mcp.WithString("query",
+			mcp.Required(),
+			mcp.Description("Search query"),
+		),
+		mcp.WithNumber("page",
+			mcp.Description("Page number (default: 1)"),
+		),
+		mcp.WithNumber("per_page",
+			mcp.Description("Results per page (default: 30, max: 100)"),
+		),
+	)
+	s.AddTool(searchRepositoriesTool, client.HandleToSearchRepositories)
+
+	// ツール2: ユーザーリポジトリの検索
+	getUserRepositoriesTool := mcp.NewTool("get_user_repositories",
+		mcp.WithDescription("Get repositories for a specific GitHub user"),
+		mcp.WithString("username",
+			mcp.Required(),
+			mcp.Description("GitHub username"),
+		),
+		mcp.WithNumber("per_page",
+			mcp.Description("Results per page (default: 30, max: 100)"),
+		),
+		mcp.WithNumber("page",
+			mcp.Description("Page number (default: 1)"),
+		),
+		mcp.WithString("sort",
+			mcp.Description("Sort field: created, updated, pushed, full_name (default: full_name)"),
+			mcp.Enum("created", "updated", "pushed", "full_name"),
+		),
+		mcp.WithString("direction",
+			mcp.Description("Sort direction: asc or desc (default: desc)"),
+			mcp.Enum("asc", "desc"),
+		),
+		mcp.WithString("type",
+			mcp.Description("Type of repositories to include: all, owner, member, public, private (default: all)"),
+			mcp.Enum("all", "owner", "member", "public", "private"),
+		),
+	)
+	s.AddTool(getUserRepositoriesTool, client.HandleToGetUserRepositories)
+
+	return s
+}
