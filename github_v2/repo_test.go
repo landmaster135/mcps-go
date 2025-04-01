@@ -3,6 +3,7 @@ package github_v2
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -698,25 +699,25 @@ func TestHandleToGetUserRepositories(t *testing.T) {
 			},
 			mockResponse: []map[string]interface{}{
 				{
-					"id":       float64(123456),
-					"name":     "test-repo-1",
+					"id":        float64(123456),
+					"name":      "test-repo-1",
 					"full_name": "test_user/test-repo-1",
 					"owner": map[string]interface{}{
 						"login": "test_user",
 					},
-					"html_url": "https://github.com/test_user/test-repo-1",
-					"description": "テストリポジトリ1",
+					"html_url":         "https://github.com/test_user/test-repo-1",
+					"description":      "テストリポジトリ1",
 					"stargazers_count": float64(10),
 				},
 				{
-					"id":       float64(123457),
-					"name":     "test-repo-2",
+					"id":        float64(123457),
+					"name":      "test-repo-2",
 					"full_name": "test_user/test-repo-2",
 					"owner": map[string]interface{}{
 						"login": "test_user",
 					},
-					"html_url": "https://github.com/test_user/test-repo-2",
-					"description": "テストリポジトリ2",
+					"html_url":         "https://github.com/test_user/test-repo-2",
+					"description":      "テストリポジトリ2",
 					"stargazers_count": float64(20),
 				},
 			},
@@ -736,14 +737,14 @@ func TestHandleToGetUserRepositories(t *testing.T) {
 			},
 			mockResponse: []map[string]interface{}{
 				{
-					"id":       float64(123458),
-					"name":     "test-repo-3",
+					"id":        float64(123458),
+					"name":      "test-repo-3",
 					"full_name": "test_user/test-repo-3",
 					"owner": map[string]interface{}{
 						"login": "test_user",
 					},
-					"html_url": "https://github.com/test_user/test-repo-3",
-					"description": "テストリポジトリ3",
+					"html_url":         "https://github.com/test_user/test-repo-3",
+					"description":      "テストリポジトリ3",
 					"stargazers_count": float64(30),
 				},
 			},
@@ -874,6 +875,405 @@ func TestHandleToGetUserRepositories(t *testing.T) {
 
 				// 正常に結果が返されたことを確認できれば十分とします
 				// 実際のAPIレスポンスは既にGetUserRepositoriesメソッドのテストで検証済みです
+			}
+		})
+	}
+}
+
+// TestGetFileContents はGetFileContentsメソッドをテストする
+func TestGetFileContents(t *testing.T) {
+	// テストケース
+	tests := []struct {
+		name           string
+		owner          string
+		repo           string
+		path           string
+		branch         string
+		mockResponse   map[string]interface{}
+		mockStatusCode int
+		mockError      error
+		expectError    bool
+	}{
+		{
+			name:   "正常系 - ファイル取得成功（デフォルトブランチ）",
+			owner:  "test_user",
+			repo:   "test_repo",
+			path:   "README.md",
+			branch: "",
+			mockResponse: map[string]interface{}{
+				"name":         "README.md",
+				"path":         "README.md",
+				"sha":          "abc123def456",
+				"size":         float64(1024),
+				"url":          "https://api.github.com/repos/test_user/test_repo/contents/README.md",
+				"html_url":     "https://github.com/test_user/test_repo/blob/main/README.md",
+				"git_url":      "https://api.github.com/repos/test_user/test_repo/git/blobs/abc123def456",
+				"download_url": "https://raw.githubusercontent.com/test_user/test_repo/main/README.md",
+				"type":         "file",
+				"content":      base64.StdEncoding.EncodeToString([]byte("# テストリポジトリ\nこれはテスト用のREADMEファイルです。")),
+				"encoding":     "base64",
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name:   "正常系 - ファイル取得成功（指定ブランチ）",
+			owner:  "test_user",
+			repo:   "test_repo",
+			path:   "README.md",
+			branch: "develop",
+			mockResponse: map[string]interface{}{
+				"name":         "README.md",
+				"path":         "README.md",
+				"sha":          "def456abc789",
+				"size":         float64(2048),
+				"url":          "https://api.github.com/repos/test_user/test_repo/contents/README.md?ref=develop",
+				"html_url":     "https://github.com/test_user/test_repo/blob/develop/README.md",
+				"git_url":      "https://api.github.com/repos/test_user/test_repo/git/blobs/def456abc789",
+				"download_url": "https://raw.githubusercontent.com/test_user/test_repo/develop/README.md",
+				"type":         "file",
+				"content":      base64.StdEncoding.EncodeToString([]byte("# 開発ブランチ\nこれは開発ブランチのREADMEファイルです。")),
+				"encoding":     "base64",
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name:   "異常系 - 認証エラー",
+			owner:  "test_user",
+			repo:   "test_repo",
+			path:   "README.md",
+			branch: "",
+			mockResponse: map[string]interface{}{
+				"message":           "Bad credentials",
+				"documentation_url": "https://docs.github.com/rest",
+			},
+			mockStatusCode: http.StatusUnauthorized,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name:   "異常系 - ファイルが存在しない",
+			owner:  "test_user",
+			repo:   "test_repo",
+			path:   "nonexistent.md",
+			branch: "",
+			mockResponse: map[string]interface{}{
+				"message":           "Not Found",
+				"documentation_url": "https://docs.github.com/rest",
+			},
+			mockStatusCode: http.StatusNotFound,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name:   "異常系 - リポジトリが存在しない",
+			owner:  "nonexistent",
+			repo:   "nonexistent",
+			path:   "README.md",
+			branch: "",
+			mockResponse: map[string]interface{}{
+				"message":           "Not Found",
+				"documentation_url": "https://docs.github.com/rest",
+			},
+			mockStatusCode: http.StatusNotFound,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name:           "異常系 - ネットワークエラー",
+			owner:          "test_user",
+			repo:           "test_repo",
+			path:           "README.md",
+			branch:         "",
+			mockResponse:   nil,
+			mockStatusCode: 0,
+			mockError:      errors.New("ネットワーク接続エラー"),
+			expectError:    true,
+		},
+		{
+			name:           "異常系 - 不正なJSONレスポンス",
+			owner:          "test_user",
+			repo:           "test_repo",
+			path:           "README.md",
+			branch:         "",
+			mockResponse:   nil,
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name:   "異常系 - コンテンツのデコードエラー",
+			owner:  "test_user",
+			repo:   "test_repo",
+			path:   "README.md",
+			branch: "",
+			mockResponse: map[string]interface{}{
+				"name":         "README.md",
+				"path":         "README.md",
+				"sha":          "abc123def456",
+				"size":         float64(1024),
+				"url":          "https://api.github.com/repos/test_user/test_repo/contents/README.md",
+				"html_url":     "https://github.com/test_user/test_repo/blob/main/README.md",
+				"git_url":      "https://api.github.com/repos/test_user/test_repo/git/blobs/abc123def456",
+				"download_url": "https://raw.githubusercontent.com/test_user/test_repo/main/README.md",
+				"type":         "file",
+				"content":      "これは不正なBase64エンコードです！！！",
+				"encoding":     "base64",
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// モックHTTPクライアントの作成
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					// ネットワークエラーのシミュレーション
+					if tc.mockError != nil {
+						return nil, tc.mockError
+					}
+
+					// リクエストの検証
+					expectedURL := fmt.Sprintf("%s/repos/%s/%s/contents/%s", apiBaseURL, tc.owner, tc.repo, tc.path)
+					if tc.branch != "" {
+						expectedURL += fmt.Sprintf("?ref=%s", tc.branch)
+					}
+					if req.URL.String() != expectedURL {
+						t.Errorf("期待されたURL: %s, 実際: %s", expectedURL, req.URL.String())
+					}
+
+					if req.Method != "GET" {
+						t.Errorf("期待されたHTTPメソッド: GET, 実際: %s", req.Method)
+					}
+
+					if req.Header.Get("Accept") != "application/vnd.github.v3+json" {
+						t.Errorf("期待されたAcceptヘッダー: application/vnd.github.v3+json, 実際: %s", req.Header.Get("Accept"))
+					}
+
+					if req.Header.Get("Authorization") != "token test_token" {
+						t.Errorf("期待されたAuthorizationヘッダー: token test_token, 実際: %s", req.Header.Get("Authorization"))
+					}
+
+					// モックレスポンスの作成
+					var responseBody []byte
+					if tc.name == "異常系 - 不正なJSONレスポンス" {
+						responseBody = []byte("{invalid json}")
+					} else if tc.mockResponse != nil {
+						responseBody, _ = json.Marshal(tc.mockResponse)
+					}
+
+					return &http.Response{
+						StatusCode: tc.mockStatusCode,
+						Body:       io.NopCloser(bytes.NewReader(responseBody)),
+					}, nil
+				},
+			}
+
+			// GitHubClientのhttpClientをモックに置き換える
+			client := NewGitHubClient("test_token")
+			client.httpClient = mockClient
+
+			// テスト対象の関数を実行
+			result, err := client.GetFileContents(tc.owner, tc.repo, tc.path, tc.branch)
+
+			// エラーの検証
+			if tc.expectError && err == nil {
+				t.Error("エラーが期待されていましたが、エラーは発生しませんでした")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("エラーは期待されていませんでしたが、エラーが発生しました: %v", err)
+			}
+
+			// 正常系の場合、結果を検証
+			if !tc.expectError {
+				// 基本的なフィールドの検証
+				expectedFields := []string{"name", "path", "sha", "size", "url", "html_url", "git_url", "download_url", "type", "encoding"}
+				for _, field := range expectedFields {
+					if tc.mockResponse[field] != result[field] {
+						t.Errorf("フィールド %s の値が異なります。期待: %v, 実際: %v", field, tc.mockResponse[field], result[field])
+					}
+				}
+
+				// decoded_contentフィールドの検証
+				if content, ok := tc.mockResponse["content"].(string); ok {
+					expectedContent, _ := base64.StdEncoding.DecodeString(strings.ReplaceAll(content, "\n", ""))
+					if string(expectedContent) != result["decoded_content"] {
+						t.Errorf("decoded_contentの値が異なります。期待: %s, 実際: %s", string(expectedContent), result["decoded_content"])
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestHandleToGetFileContents はHandleToGetFileContentsメソッドをテストする
+func TestHandleToGetFileContents(t *testing.T) {
+	// テストケース
+	tests := []struct {
+		name           string
+		arguments      map[string]interface{}
+		mockResponse   map[string]interface{}
+		mockStatusCode int
+		mockError      error
+		expectError    bool
+	}{
+		{
+			name: "正常系 - 必須パラメータのみ",
+			arguments: map[string]interface{}{
+				"owner": "test_user",
+				"repo":  "test_repo",
+				"path":  "README.md",
+			},
+			mockResponse: map[string]interface{}{
+				"name":         "README.md",
+				"path":         "README.md",
+				"sha":          "abc123def456",
+				"size":         float64(1024),
+				"url":          "https://api.github.com/repos/test_user/test_repo/contents/README.md",
+				"html_url":     "https://github.com/test_user/test_repo/blob/main/README.md",
+				"git_url":      "https://api.github.com/repos/test_user/test_repo/git/blobs/abc123def456",
+				"download_url": "https://raw.githubusercontent.com/test_user/test_repo/main/README.md",
+				"type":         "file",
+				"content":      base64.StdEncoding.EncodeToString([]byte("# テストリポジトリ\nこれはテスト用のREADMEファイルです。")),
+				"encoding":     "base64",
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name: "正常系 - すべてのパラメータ",
+			arguments: map[string]interface{}{
+				"owner":  "test_user",
+				"repo":   "test_repo",
+				"path":   "README.md",
+				"branch": "develop",
+			},
+			mockResponse: map[string]interface{}{
+				"name":         "README.md",
+				"path":         "README.md",
+				"sha":          "def456abc789",
+				"size":         float64(2048),
+				"url":          "https://api.github.com/repos/test_user/test_repo/contents/README.md?ref=develop",
+				"html_url":     "https://github.com/test_user/test_repo/blob/develop/README.md",
+				"git_url":      "https://api.github.com/repos/test_user/test_repo/git/blobs/def456abc789",
+				"download_url": "https://raw.githubusercontent.com/test_user/test_repo/develop/README.md",
+				"type":         "file",
+				"content":      base64.StdEncoding.EncodeToString([]byte("# 開発ブランチ\nこれは開発ブランチのREADMEファイルです。")),
+				"encoding":     "base64",
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name: "異常系 - APIエラー",
+			arguments: map[string]interface{}{
+				"owner": "test_user",
+				"repo":  "test_repo",
+				"path":  "nonexistent.md",
+			},
+			mockResponse: map[string]interface{}{
+				"message":           "Not Found",
+				"documentation_url": "https://docs.github.com/rest",
+			},
+			mockStatusCode: http.StatusNotFound,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name: "異常系 - ネットワークエラー",
+			arguments: map[string]interface{}{
+				"owner": "test_user",
+				"repo":  "test_repo",
+				"path":  "README.md",
+			},
+			mockResponse:   nil,
+			mockStatusCode: 0,
+			mockError:      errors.New("ネットワーク接続エラー"),
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// モックHTTPクライアントの作成
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					// ネットワークエラーのシミュレーション
+					if tc.mockError != nil {
+						return nil, tc.mockError
+					}
+
+					// リクエストの検証
+					expectedURL := fmt.Sprintf("%s/repos/%s/%s/contents/%s", apiBaseURL, tc.arguments["owner"].(string), tc.arguments["repo"].(string), tc.arguments["path"].(string))
+					if branch, ok := tc.arguments["branch"]; ok {
+						expectedURL += fmt.Sprintf("?ref=%s", branch.(string))
+					}
+					if req.URL.String() != expectedURL {
+						t.Errorf("期待されたURL: %s, 実際: %s", expectedURL, req.URL.String())
+					}
+
+					if req.Method != "GET" {
+						t.Errorf("期待されたHTTPメソッド: GET, 実際: %s", req.Method)
+					}
+
+					// モックレスポンスの作成
+					var responseBody []byte
+					if tc.mockResponse != nil {
+						responseBody, _ = json.Marshal(tc.mockResponse)
+					}
+
+					return &http.Response{
+						StatusCode: tc.mockStatusCode,
+						Body:       io.NopCloser(bytes.NewReader(responseBody)),
+					}, nil
+				},
+			}
+
+			// GitHubClientのhttpClientをモックに置き換える
+			client := NewGitHubClient("test_token")
+			client.httpClient = mockClient
+
+			// リクエストの作成
+			request := mcp.CallToolRequest{}
+			// Paramsフィールドに直接アクセス
+			request.Params.Name = "get_file_contents"
+			request.Params.Arguments = tc.arguments
+
+			// テスト対象の関数を実行
+			ctx := context.Background()
+			result, err := client.HandleToGetFileContents(ctx, request)
+
+			// エラーの検証
+			if tc.expectError && err == nil {
+				t.Error("エラーが期待されていましたが、エラーは発生しませんでした")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("エラーは期待されていませんでしたが、エラーが発生しました: %v", err)
+			}
+
+			// 正常系の場合、結果を検証
+			if !tc.expectError {
+				if result == nil {
+					t.Fatal("結果がnilです")
+				}
+
+				// 結果の内容を検証
+				// 注: mcp.CallToolResultの構造は外部パッケージで定義されているため、
+				// 直接内部構造にアクセスせず、結果が非nilであることだけを確認します
+				if result == nil {
+					t.Fatal("結果がnilです")
+				}
+
+				// 正常に結果が返されたことを確認できれば十分とします
+				// 実際のAPIレスポンスは既にGetFileContentsメソッドのテストで検証済みです
 			}
 		})
 	}

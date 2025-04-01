@@ -2,6 +2,7 @@ package github_v2
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -106,6 +107,50 @@ func (c *GitHubClient) HandleToGetUserRepositories(ctx context.Context, request 
 	return returnJSONResult(result)
 }
 
+// GetFileContents はリポジトリからファイルの内容を取得します
+func (c *GitHubClient) GetFileContents(owner, repo, path, branch string) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/contents/%s", apiBaseURL, owner, repo, path)
+	if branch != "" {
+		url += fmt.Sprintf("?ref=%s", branch)
+	}
+
+	data, err := c.doRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	// ファイルの内容をデコードする
+	if content, ok := result["content"].(string); ok {
+		decoded, err := base64.StdEncoding.DecodeString(strings.ReplaceAll(content, "\n", ""))
+		if err != nil {
+			return nil, err
+		}
+		result["decoded_content"] = string(decoded)
+	}
+
+	return result, nil
+}
+
+// HandleToGetFileContents はリポジトリからファイルの内容を取得して、結果をJSON形式で返します
+func (c *GitHubClient) HandleToGetFileContents(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	owner := getRequiredStringParam(request.Params.Arguments, "owner")
+	repo := getRequiredStringParam(request.Params.Arguments, "repo")
+	path := getRequiredStringParam(request.Params.Arguments, "path")
+	branch, _ := getStringParam(request.Params.Arguments, "branch")
+
+	result, err := c.GetFileContents(owner, repo, path, branch)
+	if err != nil {
+		return nil, err
+	}
+
+	return returnJSONResult(result)
+}
+
 // SetGitHubRepositoryServer は受け取ったMCPサーバにGitHubリポジトリ用のツールを付与して、そのMCPサーバを返します。
 func SetGitHubRepositoryServer(token string, s *server.MCPServer) *server.MCPServer {
 	// GitHubクライアントを初期化
@@ -154,6 +199,27 @@ func SetGitHubRepositoryServer(token string, s *server.MCPServer) *server.MCPSer
 		),
 	)
 	s.AddTool(getUserRepositoriesTool, client.HandleToGetUserRepositories)
+
+	// ツール3: ファイル内容の取得
+	getFileContentsTool := mcp.NewTool("get_file_contents",
+		mcp.WithDescription("Get the contents of a file from a GitHub repository"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithString("path",
+			mcp.Required(),
+			mcp.Description("File path within the repository"),
+		),
+		mcp.WithString("branch",
+			mcp.Description("Branch name (default: repository's default branch)"),
+		),
+	)
+	s.AddTool(getFileContentsTool, client.HandleToGetFileContents)
 
 	return s
 }
