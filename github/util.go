@@ -1,4 +1,4 @@
-package github_v2
+package github
 
 import (
 	"encoding/json"
