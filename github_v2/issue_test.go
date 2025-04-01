@@ -990,7 +990,7 @@ func TestHandleToUpdateIssue(t *testing.T) {
 			arguments: map[string]interface{}{
 				"owner":       "test_user",
 				"repo":        "test_repo",
-				"pull_number": float64(1),
+				"issue_number": float64(1),
 			},
 			mockResponse: map[string]interface{}{
 				"id":     float64(123456),
@@ -1007,7 +1007,7 @@ func TestHandleToUpdateIssue(t *testing.T) {
 			arguments: map[string]interface{}{
 				"owner":       "test_user",
 				"repo":        "test_repo",
-				"pull_number": float64(1),
+				"issue_number": float64(1),
 				"title":       "更新されたイシュー",
 				"body":        "これは更新されたイシューです",
 				"state":       "closed",
@@ -1032,7 +1032,7 @@ func TestHandleToUpdateIssue(t *testing.T) {
 			arguments: map[string]interface{}{
 				"owner":       "test_user",
 				"repo":        "test_repo",
-				"pull_number": float64(999),
+				"issue_number": float64(999),
 				"title":       "更新されたイシュー",
 			},
 			mockResponse: map[string]interface{}{
@@ -1056,7 +1056,7 @@ func TestHandleToUpdateIssue(t *testing.T) {
 					}
 
 					// リクエストの検証
-					issueNumber := int(tc.arguments["pull_number"].(float64))
+					issueNumber := int(tc.arguments["issue_number"].(float64))
 					expectedURL := fmt.Sprintf("%s/repos/%s/%s/issues/%d", apiBaseURL, tc.arguments["owner"].(string), tc.arguments["repo"].(string), issueNumber)
 					if req.URL.String() != expectedURL {
 						t.Errorf("期待されたURL: %s, 実際: %s", expectedURL, req.URL.String())

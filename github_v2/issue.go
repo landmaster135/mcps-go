@@ -137,7 +137,7 @@ func (c *GitHubClient) UpdateIssue(owner, repo string, issueNumber int, options 
 func (c *GitHubClient) HandleToUpdateIssue(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	owner := getRequiredStringParam(request.Params.Arguments, "owner")
 	repo := getRequiredStringParam(request.Params.Arguments, "repo")
-	issueNumber := getNumberParam(request.Params.Arguments, "pull_number", 1)
+	issueNumber := int(request.Params.Arguments["issue_number"].(float64))
 
 	options := make(map[string]interface{})
 
