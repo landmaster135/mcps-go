@@ -3,8 +3,8 @@ package git
 import (
 	"fmt"
 
-	server "github.com/mark3labs/mcp-go/server"
 	util "example.com/mcps-go/util"
+	server "github.com/mark3labs/mcp-go/server"
 )
 
 func createGitServer() *server.MCPServer {
