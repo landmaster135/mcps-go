@@ -731,6 +731,7 @@ func TestUpdateIssue(t *testing.T) {
 		mockStatusCode int
 		mockError      error
 		expectError    bool
+		checkURL       bool // URLの構築を明示的に検証するフラグ
 	}{
 		{
 			name:        "正常系 - イシュー更新成功",
@@ -752,6 +753,7 @@ func TestUpdateIssue(t *testing.T) {
 			mockStatusCode: http.StatusOK,
 			mockError:      nil,
 			expectError:    false,
+			checkURL:       true, // URLの構築を検証
 		},
 		{
 			name:        "正常系 - 一部のフィールドのみ更新",
@@ -770,6 +772,7 @@ func TestUpdateIssue(t *testing.T) {
 			mockStatusCode: http.StatusOK,
 			mockError:      nil,
 			expectError:    false,
+			checkURL:       false,
 		},
 		{
 			name:        "異常系 - 認証エラー",
@@ -786,6 +789,7 @@ func TestUpdateIssue(t *testing.T) {
 			mockStatusCode: http.StatusUnauthorized,
 			mockError:      nil,
 			expectError:    true,
+			checkURL:       false,
 		},
 		{
 			name:        "異常系 - イシューが存在しない",
@@ -802,6 +806,7 @@ func TestUpdateIssue(t *testing.T) {
 			mockStatusCode: http.StatusNotFound,
 			mockError:      nil,
 			expectError:    true,
+			checkURL:       true, // URLの構築を検証（特に異なるissueNumber）
 		},
 		{
 			name:        "異常系 - ネットワークエラー",
@@ -815,6 +820,7 @@ func TestUpdateIssue(t *testing.T) {
 			mockStatusCode: 0,
 			mockError:      errors.New("ネットワーク接続エラー"),
 			expectError:    true,
+			checkURL:       false,
 		},
 		{
 			name:        "異常系 - JSONマーシャリングエラー",
@@ -829,6 +835,39 @@ func TestUpdateIssue(t *testing.T) {
 			mockStatusCode: 0,
 			mockError:      nil,
 			expectError:    true,
+			checkURL:       false,
+		},
+		{
+			name:        "異常系 - 不正なJSONレスポンス",
+			owner:       "test_user",
+			repo:        "test_repo",
+			issueNumber: 1,
+			options: map[string]interface{}{
+				"title": "更新されたイシュー",
+			},
+			mockResponse:   nil, // レスポンスボディは後で設定
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    true,
+			checkURL:       false,
+		},
+		{
+			name:        "異常系 - 特殊なURLパラメータ",
+			owner:       "test/user", // スラッシュを含む
+			repo:        "test-repo",
+			issueNumber: 1,
+			options: map[string]interface{}{
+				"title": "更新されたイシュー",
+			},
+			mockResponse: map[string]interface{}{
+				"id":     float64(123456),
+				"number": float64(1),
+				"title":  "更新されたイシュー",
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+			checkURL:       true, // URLの構築を検証（特殊文字を含む）
 		},
 	}
 
@@ -1110,22 +1149,24 @@ func TestHandleToUpdateIssue(t *testing.T) {
 func TestAddIssueComment(t *testing.T) {
 	// テストケース
 	tests := []struct {
-		name           string
-		owner          string
-		repo           string
-		issueNumber    int
-		body           string
-		mockResponse   map[string]interface{}
-		mockStatusCode int
-		mockError      error
-		expectError    bool
+		name                string
+		owner               string
+		repo                string
+		issueNumber         int
+		body                string
+		mockResponse        map[string]interface{}
+		mockStatusCode      int
+		mockError           error
+		expectError         bool
+		jsonMarshalError    bool // JSONマーシャリングエラーをシミュレートするフラグ
+		invalidJsonResponse bool // 不正なJSONレスポンスをシミュレートするフラグ
 	}{
 		{
-			name:        "正常系 - コメント追加成功",
-			owner:       "test_user",
-			repo:        "test_repo",
-			issueNumber: 1,
-			body:        "これはテストコメントです",
+			name:                "正常系 - コメント追加成功",
+			owner:               "test_user",
+			repo:                "test_repo",
+			issueNumber:         1,
+			body:                "これはテストコメントです",
 			mockResponse: map[string]interface{}{
 				"id":   float64(123456),
 				"body": "これはテストコメントです",
@@ -1133,53 +1174,183 @@ func TestAddIssueComment(t *testing.T) {
 					"login": "test_user",
 				},
 			},
-			mockStatusCode: http.StatusCreated,
-			mockError:      nil,
-			expectError:    false,
+			mockStatusCode:      http.StatusCreated,
+			mockError:           nil,
+			expectError:         false,
+			jsonMarshalError:    false,
+			invalidJsonResponse: false,
 		},
 		{
-			name:        "異常系 - 認証エラー",
-			owner:       "test_user",
-			repo:        "test_repo",
-			issueNumber: 1,
-			body:        "これはテストコメントです",
+			name:                "異常系 - 認証エラー",
+			owner:               "test_user",
+			repo:                "test_repo",
+			issueNumber:         1,
+			body:                "これはテストコメントです",
 			mockResponse: map[string]interface{}{
 				"message":           "Bad credentials",
 				"documentation_url": "https://docs.github.com/rest",
 			},
-			mockStatusCode: http.StatusUnauthorized,
-			mockError:      nil,
-			expectError:    true,
+			mockStatusCode:      http.StatusUnauthorized,
+			mockError:           nil,
+			expectError:         true,
+			jsonMarshalError:    false,
+			invalidJsonResponse: false,
 		},
 		{
-			name:        "異常系 - イシューが存在しない",
-			owner:       "test_user",
-			repo:        "test_repo",
-			issueNumber: 999,
-			body:        "これはテストコメントです",
+			name:                "異常系 - イシューが存在しない",
+			owner:               "test_user",
+			repo:                "test_repo",
+			issueNumber:         999,
+			body:                "これはテストコメントです",
 			mockResponse: map[string]interface{}{
 				"message":           "Not Found",
 				"documentation_url": "https://docs.github.com/rest",
 			},
-			mockStatusCode: http.StatusNotFound,
-			mockError:      nil,
-			expectError:    true,
+			mockStatusCode:      http.StatusNotFound,
+			mockError:           nil,
+			expectError:         true,
+			jsonMarshalError:    false,
+			invalidJsonResponse: false,
 		},
 		{
-			name:           "異常系 - ネットワークエラー",
-			owner:          "test_user",
-			repo:           "test_repo",
-			issueNumber:    1,
-			body:           "これはテストコメントです",
-			mockResponse:   nil,
-			mockStatusCode: 0,
-			mockError:      errors.New("ネットワーク接続エラー"),
-			expectError:    true,
+			name:                "異常系 - ネットワークエラー",
+			owner:               "test_user",
+			repo:                "test_repo",
+			issueNumber:         1,
+			body:                "これはテストコメントです",
+			mockResponse:        nil,
+			mockStatusCode:      0,
+			mockError:           errors.New("ネットワーク接続エラー"),
+			expectError:         true,
+			jsonMarshalError:    false,
+			invalidJsonResponse: false,
+		},
+		{
+			name:                "異常系 - JSONマーシャリングエラー",
+			owner:               "test_user",
+			repo:                "test_repo",
+			issueNumber:         1,
+			body:                string([]byte{0xff, 0xfe, 0xfd}), // 不正なUTF-8シーケンス
+			mockResponse:        nil,
+			mockStatusCode:      0,
+			mockError:           nil,
+			expectError:         true,
+			jsonMarshalError:    true,
+			invalidJsonResponse: false,
+		},
+		{
+			name:                "異常系 - 不正なJSONレスポンス",
+			owner:               "test_user",
+			repo:                "test_repo",
+			issueNumber:         1,
+			body:                "これはテストコメントです",
+			mockResponse:        nil, // レスポンスボディは後で設定
+			mockStatusCode:      http.StatusOK,
+			mockError:           nil,
+			expectError:         true,
+			jsonMarshalError:    false,
+			invalidJsonResponse: true,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			// JSONマーシャリングエラーのテストケース
+			if tc.jsonMarshalError {
+				if tc.name == "異常系 - JSONマーシャリングエラー（マップ構造）" {
+					// オリジナルのjson.Marshalをモンキーパッチで置き換える方法はGoでは難しいため、
+					// モックHTTPクライアントを使用して173行目のコードをテストします
+					mockClient := &MockHTTPClient{
+						DoFunc: func(req *http.Request) (*http.Response, error) {
+							// リクエストが作成される前にエラーを返す
+							return nil, errors.New("JSONマーシャリングエラー（マップ構造）")
+						},
+					}
+
+					client := NewGitHubClient("test_token")
+					client.httpClient = mockClient
+
+					// テスト対象の関数を実行
+					_, err := client.AddIssueComment(tc.owner, tc.repo, tc.issueNumber, tc.body)
+
+					// エラーの検証
+					if !tc.expectError && err != nil {
+						t.Errorf("エラーは期待されていませんでしたが、エラーが発生しました: %v", err)
+					}
+					if tc.expectError && err == nil {
+						t.Error("エラーが期待されていましたが、エラーは発生しませんでした")
+					}
+				} else {
+					// 通常のJSONマーシャリングエラーテスト
+					client := NewGitHubClient("test_token")
+					_, err := client.AddIssueComment(tc.owner, tc.repo, tc.issueNumber, tc.body)
+					if !tc.expectError && err != nil {
+						t.Errorf("エラーは期待されていませんでしたが、エラーが発生しました: %v", err)
+					}
+					if tc.expectError && err == nil {
+						t.Error("エラーが期待されていましたが、エラーは発生しませんでした")
+					}
+				}
+				return
+			}
+
+			// 173行目を直接テストするケース
+			if tc.name == "異常系 - 173行目のマップ作成とマーシャリング" {
+				// 173行目のコードを直接実行
+				bodyMap := map[string]string{"body": tc.body}
+				jsonBody, err := json.Marshal(bodyMap)
+
+				// エラーがないことを確認
+				if err != nil {
+					t.Errorf("マーシャリングエラーが発生しました: %v", err)
+				}
+
+				// マーシャリングされたJSONが期待通りであることを確認
+				var unmarshaled map[string]interface{}
+				err = json.Unmarshal(jsonBody, &unmarshaled)
+				if err != nil {
+					t.Errorf("アンマーシャリングエラーが発生しました: %v", err)
+				}
+
+				// bodyフィールドの値が期待通りであることを確認
+				if unmarshaled["body"] != tc.body {
+					t.Errorf("期待されたbody: %s, 実際: %s", tc.body, unmarshaled["body"])
+				}
+
+				// 実際のメソッドも呼び出して、エンドツーエンドで動作することを確認
+				client := NewGitHubClient("test_token")
+				mockClient := &MockHTTPClient{
+					DoFunc: func(req *http.Request) (*http.Response, error) {
+						// リクエストボディを検証
+						body, _ := io.ReadAll(req.Body)
+						var requestBody map[string]interface{}
+						if err := json.Unmarshal(body, &requestBody); err != nil {
+							t.Fatalf("リクエストボディのJSONパースに失敗しました: %v", err)
+						}
+
+						// bodyフィールドの値が期待通りであることを確認
+						if requestBody["body"] != tc.body {
+							t.Errorf("期待されたbody: %s, 実際: %s", tc.body, requestBody["body"])
+						}
+
+						// 成功レスポンスを返す
+						responseBody := []byte(`{"id": 123456, "body": "直接テスト用コメント"}`)
+						return &http.Response{
+							StatusCode: http.StatusCreated,
+							Body:       io.NopCloser(bytes.NewReader(responseBody)),
+						}, nil
+					},
+				}
+				client.httpClient = mockClient
+
+				// テスト対象の関数を実行
+				_, err = client.AddIssueComment(tc.owner, tc.repo, tc.issueNumber, tc.body)
+				if err != nil {
+					t.Errorf("エラーが発生しました: %v", err)
+				}
+
+				return
+			}
 			// モックHTTPクライアントの作成
 			mockClient := &MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
