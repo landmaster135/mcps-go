@@ -13,6 +13,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// モック用のFileOpenerインターフェース実装
+type MockFileOpener struct {
+	errToReturn error
+	file        *os.File
+}
+
+func (m *MockFileOpener) Open(name string) (*os.File, error) {
+	if m.errToReturn != nil {
+		return nil, m.errToReturn
+	}
+	if m.file != nil {
+		return m.file, nil
+	}
+	// 実際のファイルを開く（通常のテストケースで使用）
+	return os.Open(name)
+}
+
 // モック用のBufioScannerインターフェース実装
 type MockBufioScanner struct {
 	boolToReturn bool
@@ -313,23 +330,36 @@ func TestHandleToEvaluateLineCount(t *testing.T) {
 
 // TestScannerError は scanner.Err() がエラーを返す場合をテストします
 func TestScannerError(t *testing.T) {
+	// テスト用の一時ファイルを作成（実際のファイルが必要）
+	tmpFile, err := os.CreateTemp("", "mock-file-*.txt")
+	assert.NoError(t, err, "一時ファイルの作成に失敗しました")
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
 	// モック用のBufioScannerを作成
 	mockScanner := &MockBufioScanner{
 		boolToReturn: false,
 		errToReturn: errors.New("模擬的なスキャナーエラー"),
 	}
 
-	// テスト用のEvalClientを作成し、モックを注入
-	eval := &EvalClient{
-		bufioScanner: mockScanner,
+	// モック用のFileOpenerを作成（一時ファイルを返すように設定）
+	mockFileOpener := &MockFileOpener{
+		errToReturn: nil,
+		file:        tmpFile,
 	}
 
-	// bufioScannerのErrメソッドを呼び出す
+	// テスト用のEvalClientを作成し、モックを注入
+	eval := &EvalClient{
+		fileOpener:    mockFileOpener,
+		bufioScanner:  mockScanner,
+		jsonMarshaler: &DefaultJSONMarshaler{},
+	}
+
+	// CountLinesメソッドを呼び出す
 	lc, err := eval.CountLines("模擬的なファイルパス")
-	// err := eval.bufioScanner.Err()
 
 	// 結果の検証
-	assert.Equal(t, lc, 0, "行数が期待値と一致しません")
+	assert.Equal(t, 0, lc, "行数が期待値と一致しません")
 	assert.Error(t, err, "scanner.Err()がエラーを返すべきです")
 	assert.Equal(t, "模擬的なスキャナーエラー", err.Error(), "エラーメッセージが期待値と一致しません")
 }
@@ -343,7 +373,8 @@ func TestJSONMarshalError(t *testing.T) {
 
 	// テスト用のEvalClientを作成し、モックを注入
 	eval := &EvalClient{
-		bufioScanner: &bufio.Scanner{},
+		fileOpener:    &DefaultFileOpener{},
+		bufioScanner:  &bufio.Scanner{},
 		jsonMarshaler: mockMarshaler,
 	}
 	ctx := context.Background()
