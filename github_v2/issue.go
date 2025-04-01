@@ -112,6 +112,94 @@ func (c *GitHubClient) HandleToListIssues(ctx context.Context, request mcp.CallT
 	return returnJSONResult(result)
 }
 
+// UpdateIssue は既存のイシューを更新します
+func (c *GitHubClient) UpdateIssue(owner, repo string, issueNumber int, options map[string]interface{}) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/issues/%d", apiBaseURL, owner, repo, issueNumber)
+
+	jsonBody, err := json.Marshal(options)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := c.doRequest("PATCH", url, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (c *GitHubClient) HandleToUpdateIssue(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	owner := getRequiredStringParam(request.Params.Arguments, "owner")
+	repo := getRequiredStringParam(request.Params.Arguments, "repo")
+	issueNumber := getNumberParam(request.Params.Arguments, "pull_number", 1)
+
+	options := make(map[string]interface{})
+
+	// 文字列オプションパラメータを追加
+	if title, ok := getStringParam(request.Params.Arguments, "title"); ok {
+		options["title"] = title
+	}
+	if body, ok := getStringParam(request.Params.Arguments, "body"); ok {
+		options["body"] = body
+	}
+	if state, ok := getStringParam(request.Params.Arguments, "state"); ok {
+		options["state"] = state
+	}
+
+	// 配列パラメータを追加
+	addToOptions(options, request.Params.Arguments, "labels")
+	addToOptions(options, request.Params.Arguments, "assignees")
+
+	result, err := c.UpdateIssue(owner, repo, issueNumber, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return returnJSONResult(result)
+}
+
+// AddIssueComment はイシューにコメントを追加します
+func (c *GitHubClient) AddIssueComment(owner, repo string, issueNumber int, body string) (map[string]interface{}, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/issues/%d/comments", apiBaseURL, owner, repo, issueNumber)
+
+	jsonBody, err := json.Marshal(map[string]string{"body": body})
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := c.doRequest("POST", url, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (c *GitHubClient) HandleToAddIssueComment(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	owner := getRequiredStringParam(request.Params.Arguments, "owner")
+	repo := getRequiredStringParam(request.Params.Arguments, "repo")
+	issueNumber := int(request.Params.Arguments["issue_number"].(float64))
+	body := getRequiredStringParam(request.Params.Arguments, "body")
+
+	result, err := c.AddIssueComment(owner, repo, issueNumber, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return returnJSONResult(result)
+}
+
 func SetGitHubIssueServer(token string, s *server.MCPServer) *server.MCPServer {
 	// GitHubクライアントを初期化
 	client := NewGitHubClient(token)
@@ -174,6 +262,64 @@ func SetGitHubIssueServer(token string, s *server.MCPServer) *server.MCPServer {
 		),
 	)
 	s.AddTool(listIssuesTool, client.HandleToListIssues)
+
+	// ツール8: イシューの更新
+	updateIssueTool := mcp.NewTool("update_issue",
+		mcp.WithDescription("Update an existing issue in a GitHub repository"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("issue_number",
+			mcp.Required(),
+			mcp.Description("Issue number"),
+		),
+		mcp.WithString("title",
+			mcp.Description("New issue title"),
+		),
+		mcp.WithString("body",
+			mcp.Description("New issue body"),
+		),
+		mcp.WithString("state",
+			mcp.Description("State of the issue: open or closed"),
+			mcp.Enum("open", "closed"),
+		),
+		mcp.WithArray("labels",
+			mcp.Description("New labels for the issue"),
+		),
+		mcp.WithArray("assignees",
+			mcp.Description("New assignees for the issue"),
+		),
+	)
+
+	s.AddTool(updateIssueTool, client.HandleToUpdateIssue)
+
+	// ツール9: イシューコメントの追加
+	addIssueCommentTool := mcp.NewTool("add_issue_comment",
+		mcp.WithDescription("Add a comment to an existing issue"),
+		mcp.WithString("owner",
+			mcp.Required(),
+			mcp.Description("Repository owner"),
+		),
+		mcp.WithString("repo",
+			mcp.Required(),
+			mcp.Description("Repository name"),
+		),
+		mcp.WithNumber("issue_number",
+			mcp.Required(),
+			mcp.Description("Issue number"),
+		),
+		mcp.WithString("body",
+			mcp.Required(),
+			mcp.Description("Comment body"),
+		),
+	)
+
+	s.AddTool(addIssueCommentTool, client.HandleToAddIssueComment)
 
 	return s
 }
