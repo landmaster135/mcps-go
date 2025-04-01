@@ -149,17 +149,55 @@ func TestGetBoolParam(t *testing.T) {
 }
 
 func TestReturnJSONResult(t *testing.T) {
-	// このテストは簡略化します
-	// 実際のmcp.CallToolResultの構造は複雑なため、
-	// エラーが発生しないことだけを確認します
-	result := map[string]interface{}{"key": "value"}
-	_, err := returnJSONResult(result)
-	if err != nil {
-		t.Errorf("returnJSONResult() error = %v", err)
-		return
+	tests := []struct {
+		name        string
+		input       interface{}
+		expectError bool
+	}{
+		{
+			name:        "正常系 - 有効なJSONデータ",
+			input:       map[string]interface{}{"key": "value"},
+			expectError: false,
+		},
+		{
+			name: "異常系 - JSONにマーシャルできないデータ",
+			input: func() interface{} {
+				// JSONにマーシャルできない循環参照を持つデータ構造
+				type Circular struct {
+					Self *Circular
+				}
+				c := &Circular{}
+				c.Self = c
+				return c
+			}(),
+			expectError: true,
+		},
 	}
 
-	// 成功すれば良しとします
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := returnJSONResult(tt.input)
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("returnJSONResult() エラーが期待されていましたが、エラーは発生しませんでした")
+				}
+				// エラーが発生した場合、resultはnilであるべき
+				if result != nil {
+					t.Errorf("returnJSONResult() エラー時にnilではない結果が返されました: %v", result)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("returnJSONResult() error = %v", err)
+					return
+				}
+				// 正常系の場合、resultはnilではないはず
+				if result == nil {
+					t.Errorf("returnJSONResult() 結果がnilです")
+				}
+			}
+		})
+	}
 }
 
 func TestAddToOptions(t *testing.T) {
@@ -236,6 +274,42 @@ func TestNewGitHubClient(t *testing.T) {
 
 			if client.httpClient == nil {
 				t.Fatal("HTTPクライアントがnilです")
+			}
+		})
+	}
+}
+
+// TestGitHubErrorError はGitHubError構造体のErrorメソッドをテストする
+func TestGitHubErrorError(t *testing.T) {
+	tests := []struct {
+		name       string
+		ghError    GitHubError
+		expected   string
+	}{
+		{
+			name: "基本的なエラーメッセージ",
+			ghError: GitHubError{
+				Message:    "Not Found",
+				StatusCode: 404,
+			},
+			expected: "GitHub API Error: Not Found (Status: 404)",
+		},
+		{
+			name: "ドキュメントURLを含むエラー",
+			ghError: GitHubError{
+				Message:          "Validation Failed",
+				DocumentationURL: "https://docs.github.com/rest/reference/issues",
+				StatusCode:       422,
+			},
+			expected: "GitHub API Error: Validation Failed (Status: 422)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errorMsg := tt.ghError.Error()
+			if errorMsg != tt.expected {
+				t.Errorf("GitHubError.Error() = %v, want %v", errorMsg, tt.expected)
 			}
 		})
 	}

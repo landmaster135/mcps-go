@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	mcp "github.com/mark3labs/mcp-go/mcp"
+	server "github.com/mark3labs/mcp-go/server"
 )
 
 // CreateIssue は新しいイシューを作成します
@@ -26,6 +26,31 @@ func (c *GitHubClient) CreateIssue(owner, repo string, options map[string]interf
 		return nil, err
 	}
 	return result, nil
+}
+
+// HandleToCreateIssue は新しいイシューを作成して、結果をJSON形式で返します
+func  (c *GitHubClient) HandleToCreateIssue(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	owner := getRequiredStringParam(request.Params.Arguments, "owner")
+	repo := getRequiredStringParam(request.Params.Arguments, "repo")
+
+	options := make(map[string]interface{})
+	options["title"] = getRequiredStringParam(request.Params.Arguments, "title")
+
+	// オプションパラメータを追加
+	if body, ok := getStringParam(request.Params.Arguments, "body"); ok {
+		options["body"] = body
+	}
+
+	// 配列パラメータを追加
+	addToOptions(options, request.Params.Arguments, "labels")
+	addToOptions(options, request.Params.Arguments, "assignees")
+
+	result, err := c.CreateIssue(owner, repo, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return returnJSONResult(result)
 }
 
 func SetGitHubIssueServer(token string, s *server.MCPServer) *server.MCPServer {
@@ -58,29 +83,7 @@ func SetGitHubIssueServer(token string, s *server.MCPServer) *server.MCPServer {
 		),
 	)
 
-	s.AddTool(createIssueTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		owner := getRequiredStringParam(request.Params.Arguments, "owner")
-		repo := getRequiredStringParam(request.Params.Arguments, "repo")
-
-		options := make(map[string]interface{})
-		options["title"] = getRequiredStringParam(request.Params.Arguments, "title")
-
-		// オプションパラメータを追加
-		if body, ok := getStringParam(request.Params.Arguments, "body"); ok {
-			options["body"] = body
-		}
-
-		// 配列パラメータを追加
-		addToOptions(options, request.Params.Arguments, "labels")
-		addToOptions(options, request.Params.Arguments, "assignees")
-
-		result, err := client.CreateIssue(owner, repo, options)
-		if err != nil {
-			return nil, err
-		}
-
-		return returnJSONResult(result)
-	})
+	s.AddTool(createIssueTool, client.HandleToCreateIssue)
 
 	return s
 }

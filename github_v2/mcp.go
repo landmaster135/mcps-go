@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mark3labs/mcp-go/server"
+	server "github.com/mark3labs/mcp-go/server"
 )
 
-// BuildGitHubServer はGitHubのMCPサーバーを構築します
-func BuildGitHubServer() {
+func createGitHubServer() *server.MCPServer {
 	// 環境変数からGitHubトークンを取得
 	token := os.Getenv("GITHUB_PERSONAL_ACCESS_TOKEN")
 	if token == "" {
@@ -23,6 +22,13 @@ func BuildGitHubServer() {
 		server.WithLogging(),
 	)
 	s = SetGitHubIssueServer(token, s)
+
+	return s
+}
+
+// BuildGitHubServer はGitHubのMCPサーバーを構築します
+func BuildGitHubServer() {
+	s := createGitHubServer()
 
 	// サーバーを起動
 	if err := server.ServeStdio(s); err != nil {
