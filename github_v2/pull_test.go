@@ -555,7 +555,7 @@ func TestCreatePullRequestReview(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// JSONマーシャリングエラーのテストケース
-			if tc.name == "異常系 - JSONマーシャリングエラー" {
+			if tc.name == "異常系 - JSONマーシャリングエラー" || tc.name == "異常系 - JSONマーシャリングエラー（76行目）" {
 				client := NewGitHubClient("test_token")
 				_, err := client.CreatePullRequestReview(tc.owner, tc.repo, tc.pullNumber, tc.options)
 				if !tc.expectError && err != nil {
@@ -898,7 +898,7 @@ func TestMergePullRequest(t *testing.T) {
 			pullNumber: 1,
 			options:    map[string]interface{}{},
 			mockResponse: map[string]interface{}{
-				"message": "Pull request is not mergeable",
+				"message":           "Pull request is not mergeable",
 				"documentation_url": "https://docs.github.com/rest/reference/pulls#merge-a-pull-request",
 			},
 			mockStatusCode: http.StatusMethodNotAllowed,
@@ -906,11 +906,11 @@ func TestMergePullRequest(t *testing.T) {
 			expectError:    true,
 		},
 		{
-			name:       "異常系 - ネットワークエラー",
-			owner:      "test_user",
-			repo:       "test_repo",
-			pullNumber: 1,
-			options:    map[string]interface{}{},
+			name:           "異常系 - ネットワークエラー",
+			owner:          "test_user",
+			repo:           "test_repo",
+			pullNumber:     1,
+			options:        map[string]interface{}{},
 			mockResponse:   nil,
 			mockStatusCode: 0,
 			mockError:      errors.New("ネットワーク接続エラー"),
@@ -934,7 +934,7 @@ func TestMergePullRequest(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// JSONマーシャリングエラーのテストケース
-			if tc.name == "異常系 - JSONマーシャリングエラー" {
+			if tc.name == "異常系 - JSONマーシャリングエラー" || tc.name == "異常系 - JSONマーシャリングエラー（122行目）" {
 				client := NewGitHubClient("test_token")
 				_, err := client.MergePullRequest(tc.owner, tc.repo, tc.pullNumber, tc.options)
 				if !tc.expectError && err != nil {
@@ -1198,6 +1198,315 @@ func TestHandleToMergePullRequest(t *testing.T) {
 
 				// 正常に結果が返されたことを確認できれば十分とします
 				// 実際のAPIレスポンスは既にMergePullRequestメソッドのテストで検証済みです
+			}
+		})
+	}
+}
+
+// TestGetPullRequestFiles はGetPullRequestFilesメソッドをテストする
+func TestGetPullRequestFiles(t *testing.T) {
+	// テストケース
+	tests := []struct {
+		name           string
+		owner          string
+		repo           string
+		pullNumber     int
+		mockResponse   []map[string]interface{}
+		mockStatusCode int
+		mockError      error
+		expectError    bool
+	}{
+		{
+			name:       "正常系 - プルリクエストファイル一覧取得成功",
+			owner:      "test_user",
+			repo:       "test_repo",
+			pullNumber: 1,
+			mockResponse: []map[string]interface{}{
+				{
+					"sha":       "abc123",
+					"filename":  "test.go",
+					"status":    "modified",
+					"additions": float64(10),
+					"deletions": float64(5),
+					"changes":   float64(15),
+				},
+				{
+					"sha":       "def456",
+					"filename":  "README.md",
+					"status":    "added",
+					"additions": float64(20),
+					"deletions": float64(0),
+					"changes":   float64(20),
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name:           "異常系 - 認証エラー",
+			owner:          "test_user",
+			repo:           "test_repo",
+			pullNumber:     1,
+			mockResponse:   nil,
+			mockStatusCode: http.StatusUnauthorized,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name:           "異常系 - プルリクエストが存在しない",
+			owner:          "test_user",
+			repo:           "test_repo",
+			pullNumber:     999,
+			mockResponse:   nil,
+			mockStatusCode: http.StatusNotFound,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name:           "異常系 - ネットワークエラー",
+			owner:          "test_user",
+			repo:           "test_repo",
+			pullNumber:     1,
+			mockResponse:   nil,
+			mockStatusCode: 0,
+			mockError:      errors.New("ネットワーク接続エラー"),
+			expectError:    true,
+		},
+		{
+			name:           "異常系 - 不正なJSONレスポンス",
+			owner:          "test_user",
+			repo:           "test_repo",
+			pullNumber:     1,
+			mockResponse:   nil,
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// モックHTTPクライアントの作成
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					// ネットワークエラーのシミュレーション
+					if tc.mockError != nil {
+						return nil, tc.mockError
+					}
+
+					// リクエストの検証
+					expectedURL := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/files", apiBaseURL, tc.owner, tc.repo, tc.pullNumber)
+					if req.URL.String() != expectedURL {
+						t.Errorf("期待されたURL: %s, 実際: %s", expectedURL, req.URL.String())
+					}
+
+					if req.Method != "GET" {
+						t.Errorf("期待されたHTTPメソッド: GET, 実際: %s", req.Method)
+					}
+
+					if req.Header.Get("Accept") != "application/vnd.github.v3+json" {
+						t.Errorf("期待されたAcceptヘッダー: application/vnd.github.v3+json, 実際: %s", req.Header.Get("Accept"))
+					}
+
+					if req.Header.Get("Authorization") != "token test_token" {
+						t.Errorf("期待されたAuthorizationヘッダー: token test_token, 実際: %s", req.Header.Get("Authorization"))
+					}
+
+					// モックレスポンスの作成
+					var responseBody []byte
+					if tc.name == "異常系 - 不正なJSONレスポンス" {
+						responseBody = []byte("{invalid json}")
+					} else if tc.mockResponse != nil {
+						responseBody, _ = json.Marshal(tc.mockResponse)
+					}
+
+					return &http.Response{
+						StatusCode: tc.mockStatusCode,
+						Body:       io.NopCloser(bytes.NewReader(responseBody)),
+					}, nil
+				},
+			}
+
+			// GitHubClientのhttpClientをモックに置き換える
+			client := NewGitHubClient("test_token")
+			client.httpClient = mockClient
+
+			// テスト対象の関数を実行
+			result, err := client.GetPullRequestFiles(tc.owner, tc.repo, tc.pullNumber)
+
+			// エラーの検証
+			if tc.expectError && err == nil {
+				t.Error("エラーが期待されていましたが、エラーは発生しませんでした")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("エラーは期待されていませんでしたが、エラーが発生しました: %v", err)
+			}
+
+			// 正常系の場合、結果を検証
+			if !tc.expectError {
+				if len(result) != len(tc.mockResponse) {
+					t.Errorf("期待された結果の長さ: %d, 実際: %d", len(tc.mockResponse), len(result))
+				}
+
+				// 各アイテムを検証
+				for i, expectedItem := range tc.mockResponse {
+					if i >= len(result) {
+						t.Errorf("インデックス %d の結果アイテムが見つかりません", i)
+						continue
+					}
+					actualItem := result[i]
+
+					// 主要なフィールドを検証
+					expectedFields := []string{"sha", "filename", "status", "additions", "deletions", "changes"}
+					for _, field := range expectedFields {
+						if expectedItem[field] != actualItem[field] {
+							t.Errorf("フィールド %s の値が異なります。期待: %v, 実際: %v", field, expectedItem[field], actualItem[field])
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestHandleToGetPullRequestFiles はHandleToGetPullRequestFilesメソッドをテストする
+func TestHandleToGetPullRequestFiles(t *testing.T) {
+	// テストケース
+	tests := []struct {
+		name           string
+		arguments      map[string]interface{}
+		mockResponse   []map[string]interface{}
+		mockStatusCode int
+		mockError      error
+		expectError    bool
+	}{
+		{
+			name: "正常系 - プルリクエストファイル一覧取得成功",
+			arguments: map[string]interface{}{
+				"owner":       "test_user",
+				"repo":        "test_repo",
+				"pull_number": float64(1),
+			},
+			mockResponse: []map[string]interface{}{
+				{
+					"sha":       "abc123",
+					"filename":  "test.go",
+					"status":    "modified",
+					"additions": float64(10),
+					"deletions": float64(5),
+					"changes":   float64(15),
+				},
+				{
+					"sha":       "def456",
+					"filename":  "README.md",
+					"status":    "added",
+					"additions": float64(20),
+					"deletions": float64(0),
+					"changes":   float64(20),
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			mockError:      nil,
+			expectError:    false,
+		},
+		{
+			name: "異常系 - APIエラー",
+			arguments: map[string]interface{}{
+				"owner":       "test_user",
+				"repo":        "test_repo",
+				"pull_number": float64(999),
+			},
+			mockResponse:   nil,
+			mockStatusCode: http.StatusNotFound,
+			mockError:      nil,
+			expectError:    true,
+		},
+		{
+			name: "異常系 - ネットワークエラー",
+			arguments: map[string]interface{}{
+				"owner":       "test_user",
+				"repo":        "test_repo",
+				"pull_number": float64(1),
+			},
+			mockResponse:   nil,
+			mockStatusCode: 0,
+			mockError:      errors.New("ネットワーク接続エラー"),
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// モックHTTPクライアントの作成
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					// ネットワークエラーのシミュレーション
+					if tc.mockError != nil {
+						return nil, tc.mockError
+					}
+
+					// リクエストの検証
+					pullNumber := int(tc.arguments["pull_number"].(float64))
+					expectedURL := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/files", apiBaseURL, tc.arguments["owner"].(string), tc.arguments["repo"].(string), pullNumber)
+					if req.URL.String() != expectedURL {
+						t.Errorf("期待されたURL: %s, 実際: %s", expectedURL, req.URL.String())
+					}
+
+					if req.Method != "GET" {
+						t.Errorf("期待されたHTTPメソッド: GET, 実際: %s", req.Method)
+					}
+
+					// モックレスポンスの作成
+					var responseBody []byte
+					if tc.mockResponse != nil {
+						responseBody, _ = json.Marshal(tc.mockResponse)
+					}
+
+					return &http.Response{
+						StatusCode: tc.mockStatusCode,
+						Body:       io.NopCloser(bytes.NewReader(responseBody)),
+					}, nil
+				},
+			}
+
+			// GitHubClientのhttpClientをモックに置き換える
+			client := NewGitHubClient("test_token")
+			client.httpClient = mockClient
+
+			// リクエストの作成
+			request := mcp.CallToolRequest{}
+			// Paramsフィールドに直接アクセス
+			request.Params.Name = "get_pull_request_files"
+			request.Params.Arguments = tc.arguments
+
+			// テスト対象の関数を実行
+			ctx := context.Background()
+			result, err := client.HandleToGetPullRequestFiles(ctx, request)
+
+			// エラーの検証
+			if tc.expectError && err == nil {
+				t.Error("エラーが期待されていましたが、エラーは発生しませんでした")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("エラーは期待されていませんでしたが、エラーが発生しました: %v", err)
+			}
+
+			// 正常系の場合、結果を検証
+			if !tc.expectError {
+				if result == nil {
+					t.Fatal("結果がnilです")
+				}
+
+				// 結果の内容を検証
+				// 注: mcp.CallToolResultの構造は外部パッケージで定義されているため、
+				// 直接内部構造にアクセスせず、結果が非nilであることだけを確認します
+				if result == nil {
+					t.Fatal("結果がnilです")
+				}
+
+				// 正常に結果が返されたことを確認できれば十分とします
+				// 実際のAPIレスポンスは既にGetPullRequestFilesメソッドのテストで検証済みです
 			}
 		})
 	}
