@@ -12,15 +12,35 @@ import (
 	server "github.com/mark3labs/mcp-go/server"
 )
 
+// BufioScanner インターフェースを定義
+type BufioScanner interface {
+	Scan() (bool)
+	Err() (error)
+}
+
+// JSONMarshaler インターフェースを定義
+type JSONMarshaler interface {
+	MarshalIndent(v interface{}, prefix, indent string) ([]byte, error)
+}
+
+// DefaultJSONMarshaler は標準のjson.MarshalIndentを使用する実装
+type DefaultJSONMarshaler struct{}
+
+func (m *DefaultJSONMarshaler) MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
+	return json.MarshalIndent(v, prefix, indent)
+}
+
 // EvalClient はファイル評価クライアントの構造体です
 type EvalClient struct{
-
+	bufioScanner BufioScanner
+	jsonMarshaler JSONMarshaler
 }
 
 // NewEvalClient は新しいEvalClientを作成します
 func NewEvalClient() *EvalClient {
 	return &EvalClient{
-
+		bufioScanner: &bufio.Scanner{},
+		jsonMarshaler: &DefaultJSONMarshaler{},
 	}
 }
 
@@ -33,12 +53,13 @@ func (e *EvalClient) CountLines(filePath string) (int, error) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	e.bufioScanner = scanner
 	lineCount := 0
-	for scanner.Scan() {
+	for e.bufioScanner.Scan() {
 		lineCount++
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err := e.bufioScanner.Err(); err != nil {
 		return 0, fmt.Errorf("ファイルの読み取り中にエラーが発生しました: %w", err)
 	}
 
@@ -84,7 +105,7 @@ func (e *EvalClient) HandleToEvaluateLineCount(ctx context.Context, request mcp.
 	}
 
 	// JSON形式で結果を返す
-	jsonResult, err := json.MarshalIndent(result, "", "  ")
+	jsonResult, err := e.jsonMarshaler.MarshalIndent(result, "", "  ")
 	if err != nil {
 		return nil, err
 	}

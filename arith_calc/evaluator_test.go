@@ -1,7 +1,9 @@
 package arith_calc
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -10,6 +12,32 @@ import (
 	server "github.com/mark3labs/mcp-go/server"
 	"github.com/stretchr/testify/assert"
 )
+
+// モック用のBufioScannerインターフェース実装
+type MockBufioScanner struct {
+	boolToReturn bool
+	errToReturn error
+}
+
+func (m *MockBufioScanner) Scan() bool {
+	return m.boolToReturn
+}
+
+func (m *MockBufioScanner) Err() error {
+	return m.errToReturn
+}
+
+// モック用のJSONMarshalerインターフェース実装
+type MockJSONMarshaler struct {
+	errToReturn error
+}
+
+func (m *MockJSONMarshaler) MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
+	if m.errToReturn != nil {
+		return nil, m.errToReturn
+	}
+	return []byte(`{"mocked":"json"}`), nil
+}
 
 // テスト用の一時ファイルを作成する関数
 func createTempFileWithLines(t *testing.T, lines []string) string {
@@ -284,17 +312,61 @@ func TestHandleToEvaluateLineCount(t *testing.T) {
 }
 
 // TestScannerError は scanner.Err() がエラーを返す場合をテストします
-// 注意: このテストは実際にはスキャナーエラーを発生させることができないため、
-// カバレッジを100%にするためのスタブテストです
 func TestScannerError(t *testing.T) {
-	t.Skip("このテストはスキャナーエラーを発生させることができないため、スキップします")
+	// モック用のBufioScannerを作成
+	mockScanner := &MockBufioScanner{
+		boolToReturn: false,
+		errToReturn: errors.New("模擬的なスキャナーエラー"),
+	}
+
+	// テスト用のEvalClientを作成し、モックを注入
+	eval := &EvalClient{
+		bufioScanner: mockScanner,
+	}
+
+	// bufioScannerのErrメソッドを呼び出す
+	lc, err := eval.CountLines("模擬的なファイルパス")
+	// err := eval.bufioScanner.Err()
+
+	// 結果の検証
+	assert.Equal(t, lc, 0, "行数が期待値と一致しません")
+	assert.Error(t, err, "scanner.Err()がエラーを返すべきです")
+	assert.Equal(t, "模擬的なスキャナーエラー", err.Error(), "エラーメッセージが期待値と一致しません")
 }
 
 // TestJSONMarshalError は JSON変換でエラーが発生する場合をテストします
-// 注意: このテストは実際にはJSON変換エラーを発生させることができないため、
-// カバレッジを100%にするためのスタブテストです
 func TestJSONMarshalError(t *testing.T) {
-	t.Skip("このテストはJSON変換エラーを発生させることができないため、スキップします")
+	// モック用のJSONMarshalerを作成
+	mockMarshaler := &MockJSONMarshaler{
+		errToReturn: errors.New("模擬的なJSON変換エラー"),
+	}
+
+	// テスト用のEvalClientを作成し、モックを注入
+	eval := &EvalClient{
+		bufioScanner: &bufio.Scanner{},
+		jsonMarshaler: mockMarshaler,
+	}
+	ctx := context.Background()
+
+	// テスト用のファイルを作成
+	lines := []string{"1行目", "2行目", "3行目"}
+	filePath := createTempFileWithLines(t, lines)
+
+	// リクエストの作成
+	request := mcp.CallToolRequest{}
+	request.Params.Name = "evaluate_line_count"
+	request.Params.Arguments = map[string]interface{}{
+		"file_path": filePath,
+		"threshold": float64(5),
+	}
+
+	// テスト対象の関数を実行
+	result, err := eval.HandleToEvaluateLineCount(ctx, request)
+
+	// 結果の検証
+	assert.Error(t, err, "JSON変換でエラーが発生する場合はエラーが発生すべきです")
+	assert.Contains(t, err.Error(), "模擬的なJSON変換エラー")
+	assert.Nil(t, result, "エラーの場合は結果がnilであるべきです")
 }
 
 // TestIsGreaterDescription は isGreaterDescription 関数をテストします
