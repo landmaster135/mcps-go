@@ -593,11 +593,17 @@ func TestGetUserRepositories(t *testing.T) {
 							t.Error("クエリパラメータが含まれていません")
 						}
 
-						// 各オプションがクエリパラメータに含まれていることを確認
-						q := req.URL.Query()
+						// URLにクエリパラメータが含まれていることを確認
+						// 実装では "?=" で始まるクエリ文字列を使用しているため、
+						// 通常のURL.Queryでは解析できない可能性がある
+						rawQuery := req.URL.RawQuery
+						rawQuery = strings.TrimPrefix(rawQuery, "=") // 先頭の "=" を削除
+
+						// 各オプションがクエリ文字列に含まれていることを確認
 						for k, v := range tc.options {
-							if q.Get(k) != fmt.Sprintf("%v", v) {
-								t.Errorf("クエリパラメータ %s の値が異なります。期待: %v, 実際: %s", k, v, q.Get(k))
+							expectedParam := fmt.Sprintf("%s=%v", k, v)
+							if !strings.Contains(rawQuery, expectedParam) {
+								t.Errorf("クエリパラメータ %s の値が含まれていません。期待: %v, 実際のクエリ: %s", k, v, rawQuery)
 							}
 						}
 					}
@@ -810,12 +816,18 @@ func TestHandleToGetUserRepositories(t *testing.T) {
 							t.Error("クエリパラメータが含まれていません")
 						}
 
-						// 各オプションがクエリパラメータに含まれていることを確認
-						q := req.URL.Query()
+						// URLにクエリパラメータが含まれていることを確認
+						// 実装では "?=" で始まるクエリ文字列を使用しているため、
+						// 通常のURL.Queryでは解析できない可能性がある
+						rawQuery := req.URL.RawQuery
+						rawQuery = strings.TrimPrefix(rawQuery, "=") // 先頭の "=" を削除
+
+						// 各オプションがクエリ文字列に含まれていることを確認
 						for k, v := range tc.arguments {
 							if k != "username" { // username以外のパラメータを検証
-								if q.Get(k) != fmt.Sprintf("%v", v) {
-									t.Errorf("クエリパラメータ %s の値が異なります。期待: %v, 実際: %s", k, v, q.Get(k))
+								expectedParam := fmt.Sprintf("%s=%v", k, v)
+								if !strings.Contains(rawQuery, expectedParam) {
+									t.Errorf("クエリパラメータ %s の値が含まれていません。期待: %v, 実際のクエリ: %s", k, v, rawQuery)
 								}
 							}
 						}
