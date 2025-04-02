@@ -1,4 +1,4 @@
-package mypkg
+package util
 
 import (
 	"fmt"

@@ -33,7 +33,9 @@
         "BRAVE_API_KEY": "YOUR_BRAVE_API_KEY"
       },
       "disabled": false,
-      "autoApprove": []
+      "autoApprove": [
+        "brave_web_search"
+      ]
     },
     "get-current-timezone": {
       "command": "/home/nov/mcps-go/mcps-go",
@@ -67,6 +69,14 @@
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_PAT"
       },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "git": {
+      "command": "/home/nov/mcps-go/mcps-go",
+      "args": [
+        "git"
+      ],
       "disabled": false,
       "autoApprove": []
     }

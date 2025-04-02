@@ -1,10 +1,8 @@
-package mypkg
+package util
 
 import (
 	"testing"
 	"time"
-
-	// mocks "mcps-go-for-claude/mocks"
 
 	"github.com/stretchr/testify/assert"
 )
