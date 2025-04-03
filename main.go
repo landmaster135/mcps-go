@@ -10,7 +10,8 @@ import (
 	filesystem "mcps-go/mcps-go/filesystem"
 	github "mcps-go/mcps-go/github"
 	http_request "mcps-go/mcps-go/http_request"
-	// shell "mcps-go/mcps-go/shell"
+	postgresql "mcps-go/mcps-go/postgresql"
+	// shell "mcps-go/mcps-go/shell" // TODO: unapplicable for WSL...
 	timezone "mcps-go/mcps-go/timezone"
 	util "mcps-go/mcps-go/util"
 	youtube_transcript "mcps-go/mcps-go/youtube_transcript"
@@ -47,16 +48,11 @@ func main() {
 		youtube_transcript.BuildYouTubeTranscriptServer()
 	case "github":
 		github.BuildGitHubServer()
-	// TODO: unapplicable for WSL...
-	// case "shell":
-	// 	shell.BuildShellServer()
+	case "postgresql":
+		postgresql.BuildPostgreSQLServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)
 	}
 	util.OutLog("main: built mcp server!")
-
-	// var c datetime_calc.DatetimeCalculator
-	// result := c.AddDatetime(2023, 12, 15, 10, 30, 45, 0, 1, 0, 0, 0, 0)
-	// fmt.Print((result))
 }
