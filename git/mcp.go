@@ -3,7 +3,7 @@ package git
 import (
 	"fmt"
 
-	util "example.com/mcps-go/util"
+	util "mcps-go/mcps-go/util"
 	server "github.com/mark3labs/mcp-go/server"
 )
 

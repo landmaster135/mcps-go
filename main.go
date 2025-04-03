@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"os"
 
-	arith_calc "example.com/mcps-go/arith_calc"
-	brave_search "example.com/mcps-go/brave_search"
-	datetime_calc "example.com/mcps-go/datetime_calc"
-	filesystem "example.com/mcps-go/filesystem"
-	git "example.com/mcps-go/git"
-	github "example.com/mcps-go/github"
-	http_request "example.com/mcps-go/http_request"
-	timezone "example.com/mcps-go/timezone"
-	util "example.com/mcps-go/util"
-	youtube_transcript "example.com/mcps-go/youtube_transcript"
+	arith_calc "mcps-go/mcps-go/arith_calc"
+	brave_search "mcps-go/mcps-go/brave_search"
+	datetime_calc "mcps-go/mcps-go/datetime_calc"
+	filesystem "mcps-go/mcps-go/filesystem"
+	git "mcps-go/mcps-go/git"
+	github "mcps-go/mcps-go/github"
+	http_request "mcps-go/mcps-go/http_request"
+	timezone "mcps-go/mcps-go/timezone"
+	util "mcps-go/mcps-go/util"
+	youtube_transcript "mcps-go/mcps-go/youtube_transcript"
 )
 
 func main() {
