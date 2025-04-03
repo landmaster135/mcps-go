@@ -8,9 +8,9 @@ import (
 	brave_search "mcps-go/mcps-go/brave_search"
 	datetime_calc "mcps-go/mcps-go/datetime_calc"
 	filesystem "mcps-go/mcps-go/filesystem"
-	git "mcps-go/mcps-go/git"
 	github "mcps-go/mcps-go/github"
 	http_request "mcps-go/mcps-go/http_request"
+	// shell "mcps-go/mcps-go/shell"
 	timezone "mcps-go/mcps-go/timezone"
 	util "mcps-go/mcps-go/util"
 	youtube_transcript "mcps-go/mcps-go/youtube_transcript"
@@ -47,8 +47,9 @@ func main() {
 		youtube_transcript.BuildYouTubeTranscriptServer()
 	case "github":
 		github.BuildGitHubServer()
-	case "git":
-		git.BuildGitServer()
+	// TODO: unapplicable for WSL...
+	// case "shell":
+	// 	shell.BuildShellServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)
