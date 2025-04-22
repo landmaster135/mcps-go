@@ -26,7 +26,7 @@ func main() {
 		os.Exit(1)
 	}
 	for i, arg := range args[1:] {
-		fmt.Printf("argument %d: %s\n", i+1, arg)
+		fmt.Fprintf(os.Stderr, "argument %d: %s\n", i+1, arg)
 	}
 
 	util.OutLog("main: building mcp server...")

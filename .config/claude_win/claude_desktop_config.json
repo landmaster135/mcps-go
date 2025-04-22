@@ -1,0 +1,76 @@
+{
+  "mcpServers": {
+    "arithmetic_calculator": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "arith_calc"
+      ]
+    },
+    "datetime_calculator": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "datetime_calc"
+      ]
+    },
+    "http_request": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "http_request"
+      ]
+    },
+    "brave_web_search": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "brave_web_search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    "get-current-timezone": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "timezone"
+      ]
+    },
+    "filesystem": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "filesystem"
+      ]
+    },
+    "get_youtube_transcript": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "youtube_transcript"
+      ]
+    },
+    "github": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    "postgresql": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "postgresql"
+      ],
+      "env": {
+        "POSTGRESQL_DATABASE_URL": "postgresql://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    "claude_code": {
+      "command": "wsl",
+      "args": [
+        "bash",
+        "-ic",
+        "claude mcp serve"
+      ],
+      "env": {}
+    }
+  }
+}
