@@ -1,0 +1,76 @@
+{
+  "mcpServers": {
+    "arithmetic_calculator": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "arith_calc"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "datetime_calculator": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "datetime_calc"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "http_request": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "http_request"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "brave_web_search": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "brave_web_search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "brave_web_search"
+      ]
+    },
+    "get-current-timezone": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "timezone"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "filesystem": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "filesystem"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "get_youtube_transcript": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "youtube_transcript"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "github": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}

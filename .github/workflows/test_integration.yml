@@ -3,7 +3,8 @@ name: go-test-integration
 on:
   push:
 
-permissions: write-all
+permissions:
+  contents: write
 
 env:
   GO_VERSION: '1.23'
@@ -12,6 +13,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[skip ci]') == false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,4 +37,4 @@ jobs:
           git config --local user.name "GitHub Action"
           git add README.md
           git log -1
-          git diff --cached --quiet || (git commit -m "chore: Updated coverage badge." && git push origin HEAD)
+          git diff --cached --quiet || (git commit -m "chore: Updated coverage badge [skip ci]" && git push origin HEAD)
