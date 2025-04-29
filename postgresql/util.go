@@ -105,6 +105,10 @@ func returnJSONResult(result interface{}) (*mcp.CallToolResult, error) {
 	return mcp.NewToolResultText(string(jsonResult)), nil
 }
 
+func returnTextResult(result interface{}) (*mcp.CallToolResult, error) {
+	return mcp.NewToolResultText(result.(string)), nil
+}
+
 // ヘルパー関数: エラーを返却
 func returnError(err error) (*mcp.CallToolResult, error) {
 	return mcp.NewToolResultText(fmt.Sprintf("Error: %v", err)), fmt.Errorf("database error: %w", err)
@@ -125,17 +129,6 @@ func addQueryParams(baseURL string, params map[string]string) string {
 		return baseURL + "&" + strings.Join(queryParts, "&")
 	}
 	return baseURL + "?" + strings.Join(queryParts, "&")
-}
-
-// Column はデータベースのカラム情報を表します
-type Column struct {
-	Name     string `json:"column_name"`
-	DataType string `json:"data_type"`
-}
-
-// Table はデータベースのテーブル情報を表します
-type Table struct {
-	Name string `json:"table_name"`
 }
 
 // QueryResult はクエリ結果を表します
