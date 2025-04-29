@@ -12,6 +12,7 @@ import (
 	github "github.com/landmaster135/mcps-go/internal/github"
 	http_request "github.com/landmaster135/mcps-go/internal/http_request"
 	postgresql "github.com/landmaster135/mcps-go/internal/postgresql"
+	sequentialthinking "github.com/landmaster135/mcps-go/internal/sequentialthinking"
 	// shell "github.com/landmaster135/mcps-go/internal/shell" // TODO: unapplicable for WSL...
 	timezone "github.com/landmaster135/mcps-go/internal/timezone"
 	util "github.com/landmaster135/mcps-go/internal/util"
@@ -53,6 +54,8 @@ func main() {
 		postgresql.BuildPostgreSQLServer()
 	case "everart":
 		everart.BuildEverArtServer()
+	case "sequentialthinking":
+		sequentialthinking.BuildSequentialThinkingServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)
