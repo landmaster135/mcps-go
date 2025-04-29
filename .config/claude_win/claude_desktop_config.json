@@ -63,6 +63,47 @@
         "POSTGRESQL_DATABASE_URL": "postgresql://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
       }
     },
+    "everart": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "everart"
+      ],
+      "env": {
+        "EVERART_API_KEY": "YOUR_KEY"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "sequentialthinking": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "sequentialthinking"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "figma": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "figma"
+      ],
+      "env": {
+        "FIGMA_API_KEY": "YOUR_KEY"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "google_drive": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "gdrive"
+      ],
+      "env": {
+        "GDRIVE_CREDENTIALS_PATH": "YOUR_PATH"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
     "claude_code": {
       "command": "wsl",
       "args": [

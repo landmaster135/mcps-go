@@ -71,6 +71,58 @@
       },
       "disabled": false,
       "autoApprove": []
+    },
+    "postgresql": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "postgresql"
+      ],
+      "env": {
+        "POSTGRESQL_DATABASE_URL": "YOUR_URL"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "everart": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "everart"
+      ],
+      "env": {
+        "EVERART_API_KEY": "YOUR_KEY"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "sequentialthinking": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "sequentialthinking"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "figma": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "figma"
+      ],
+      "env": {
+        "FIGMA_API_KEY": "YOUR_KEY"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "google_drive": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "gdrive"
+      ],
+      "env": {
+        "GDRIVE_CREDENTIALS_PATH": "YOUR_PATH"
+      },
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }
