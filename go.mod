@@ -1,4 +1,4 @@
-module mcps-go/mcps-go
+module github.com/landmaster135/mcps-go
 
 go 1.23.5
 

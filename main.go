@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"os"
 
-	arith_calc "mcps-go/mcps-go/internal/arith_calc"
-	brave_search "mcps-go/mcps-go/internal/brave_search"
-	datetime_calc "mcps-go/mcps-go/internal/datetime_calc"
-	filesystem "mcps-go/mcps-go/internal/filesystem"
-	github "mcps-go/mcps-go/internal/github"
-	http_request "mcps-go/mcps-go/internal/http_request"
-	postgresql "mcps-go/mcps-go/internal/postgresql"
-	// shell "mcps-go/mcps-go/internal/shell" // TODO: unapplicable for WSL...
-	timezone "mcps-go/mcps-go/internal/timezone"
-	util "mcps-go/mcps-go/internal/util"
-	youtube_transcript "mcps-go/mcps-go/internal/youtube_transcript"
+	arith_calc "github.com/landmaster135/mcps-go/internal/arith_calc"
+	brave_search "github.com/landmaster135/mcps-go/internal/brave_search"
+	datetime_calc "github.com/landmaster135/mcps-go/internal/datetime_calc"
+	filesystem "github.com/landmaster135/mcps-go/internal/filesystem"
+	github "github.com/landmaster135/mcps-go/internal/github"
+	http_request "github.com/landmaster135/mcps-go/internal/http_request"
+	postgresql "github.com/landmaster135/mcps-go/internal/postgresql"
+	// shell "github.com/landmaster135/mcps-go/internal/shell" // TODO: unapplicable for WSL...
+	timezone "github.com/landmaster135/mcps-go/internal/timezone"
+	util "github.com/landmaster135/mcps-go/internal/util"
+	youtube_transcript "github.com/landmaster135/mcps-go/internal/youtube_transcript"
 )
 
 func main() {
