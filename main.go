@@ -7,6 +7,7 @@ import (
 	arith_calc "github.com/landmaster135/mcps-go/internal/arith_calc"
 	brave_search "github.com/landmaster135/mcps-go/internal/brave_search"
 	datetime_calc "github.com/landmaster135/mcps-go/internal/datetime_calc"
+	everart "github.com/landmaster135/mcps-go/internal/everart"
 	filesystem "github.com/landmaster135/mcps-go/internal/filesystem"
 	github "github.com/landmaster135/mcps-go/internal/github"
 	http_request "github.com/landmaster135/mcps-go/internal/http_request"
@@ -50,6 +51,8 @@ func main() {
 		github.BuildGitHubServer()
 	case "postgresql":
 		postgresql.BuildPostgreSQLServer()
+	case "everart":
+		everart.BuildEverArtServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)
