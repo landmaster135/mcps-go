@@ -25,12 +25,14 @@ type PostgreSQLClient struct {
 func NewPostgreSQLClient(databaseURL string) (*PostgreSQLClient, error) {
 	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {
-		return nil, err
+		fmt.Printf("Error opening database connection: %v\n", err)
+    return nil, err
 	}
 
 	// 接続テスト
 	if err := db.Ping(); err != nil {
-		return nil, err
+		fmt.Printf("Error pinging database: %v\n", err)
+    return nil, err
 	}
 
 	// リソースベースURLを作成

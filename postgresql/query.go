@@ -2,12 +2,13 @@ package postgresql
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
+	"database/sql"
+	_ "github.com/lib/pq"
 
 	mcp "github.com/mark3labs/mcp-go/mcp"
 	server "github.com/mark3labs/mcp-go/server"
@@ -217,6 +218,7 @@ func SetPostgreSQLQueryServer(databaseURL string, s *server.MCPServer) *server.M
 		fmt.Printf("Failed to create PostgreSQL client: %v\n", err)
 		os.Exit(1)
 	}
+	fmt.Println(client)
 
 	// ツール1: SQL読み取り専用クエリの実行
 	queryTool := mcp.NewTool("query",

@@ -3,7 +3,6 @@ package postgresql
 import (
 	"fmt"
 	"os"
-	// _ "github.com/go-pg/pg/v10"
 
 	server "github.com/mark3labs/mcp-go/server"
 )

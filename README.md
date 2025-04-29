@@ -19,7 +19,8 @@ Nothing. A binary file only.
 
 ## Build
 ```bash
-go build main.go
+cd mcps-go
+go build main.go .
 ```
 
 ## Build with Docker
@@ -37,7 +38,7 @@ Add the following into `cline_mcp_setting.json`
 {
   "mcpServers": {
     "arithmetic_calculator": {
-      "command": "/home/nov/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/mcps-go",
       "args": [
         "arith_calc"
       ],
@@ -45,7 +46,7 @@ Add the following into `cline_mcp_setting.json`
       "autoApprove": []
     },
     "datetime_calculator": {
-      "command": "/home/nov/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/mcps-go",
       "args": [
         "datetime_calc"
       ],
@@ -53,7 +54,7 @@ Add the following into `cline_mcp_setting.json`
       "autoApprove": []
     },
     "http_request": {
-      "command": "/home/nov/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/mcps-go",
       "args": [
         "http_request"
       ],
@@ -61,7 +62,7 @@ Add the following into `cline_mcp_setting.json`
       "autoApprove": []
     },
     "brave_web_search": {
-      "command": "/home/nov/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/mcps-go",
       "args": [
         "brave_web_search"
       ],
