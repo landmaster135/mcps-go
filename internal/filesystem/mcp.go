@@ -325,6 +325,24 @@ func (fs *FileSystemService) GetFileInfo(path string) (*FileInfo, error) {
 	}, nil
 }
 
+func addPromptIntoServer(s *server.MCPServer) *server.MCPServer {
+	prompt := mcp.NewPrompt("system_prompt_01",
+		mcp.WithPromptDescription("This is a prompt for the filesystem."),
+	)
+	s.AddPrompt(prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "System prompt for the filesystem.",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("You use this great filesystem well."),
+				},
+			},
+		}, nil
+	})
+	return s
+}
+
 // BuildFileSystemServer はファイルシステムMCPサーバーを構築する関数です
 func BuildFileSystemServer() {
 	// サーバーの設定
@@ -332,6 +350,7 @@ func BuildFileSystemServer() {
 		"Secure Filesystem Server",
 		"1.0.0",
 		server.WithResourceCapabilities(true, true),
+		server.WithPromptCapabilities(true),
 		server.WithLogging(),
 	)
 
@@ -630,6 +649,9 @@ func BuildFileSystemServer() {
 		result := "許可されたディレクトリ:\n" + strings.Join(fsService.allowedDirectories, "\n")
 		return mcp.NewToolResultText(result), nil
 	})
+
+	// プロンプト
+	s = addPromptIntoServer(s)
 
 	// サーバーの起動
 	if err := server.ServeStdio(s); err != nil {

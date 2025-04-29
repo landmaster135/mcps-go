@@ -1,6 +1,7 @@
 package postgresql
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -8,8 +9,8 @@ import (
 	server "github.com/mark3labs/mcp-go/server"
 )
 
-// SetPostgreSQLQueryServer は受け取ったMCPサーバにPostgreSQL用のツールを付与して、そのMCPサーバを返します。
-func SetPostgreSQLQueryServer(databaseURL string, s *server.MCPServer) *server.MCPServer {
+// setPostgreSQLQueryServer は受け取ったMCPサーバにPostgreSQL用のツールを付与して、そのMCPサーバを返します。
+func setPostgreSQLQueryServer(databaseURL string, s *server.MCPServer) *server.MCPServer {
 	// PostgreSQLクライアントを初期化
 	client, err := NewPostgreSQLClient(databaseURL)
 	if err != nil {
@@ -63,6 +64,24 @@ func SetPostgreSQLQueryServer(databaseURL string, s *server.MCPServer) *server.M
 	return s
 }
 
+func addPromptIntoServer(s *server.MCPServer) *server.MCPServer {
+	prompt := mcp.NewPrompt("system_prompt_01",
+		mcp.WithPromptDescription("This is a prompt for the PostgreSQL client."),
+	)
+	s.AddPrompt(prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "System prompt for the PostgreSQL client.",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("You use this great client for PostgreSQL well."),
+				},
+			},
+		}, nil
+	})
+	return s
+}
+
 func createPostgreSQLServer() *server.MCPServer {
 	// 環境変数からデータベースURLを取得
 	databaseURL := os.Getenv("POSTGRESQL_DATABASE_URL")
@@ -76,9 +95,13 @@ func createPostgreSQLServer() *server.MCPServer {
 		"PostgreSQL Database Server",
 		version,
 		server.WithResourceCapabilities(true, true),
+		server.WithPromptCapabilities(true),
 		server.WithLogging(),
 	)
-	s = SetPostgreSQLQueryServer(databaseURL, s)
+	s = setPostgreSQLQueryServer(databaseURL, s)
+
+	// プロンプト
+	s = addPromptIntoServer(s)
 
 	return s
 }

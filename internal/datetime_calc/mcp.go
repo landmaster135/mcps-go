@@ -8,11 +8,30 @@ import (
 	server "github.com/mark3labs/mcp-go/server"
 )
 
+func addPromptIntoServer(s *server.MCPServer) *server.MCPServer {
+	prompt := mcp.NewPrompt("system_prompt_01",
+		mcp.WithPromptDescription("This is a datetime calculator prompt"),
+	)
+	s.AddPrompt(prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "System prompt for datetime calculator.",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("You use this accurate calculator well."),
+				},
+			},
+		}, nil
+	})
+	return s
+}
+
 func BuildTimeCalculatorServer() {
 	s := server.NewMCPServer(
 		"Time Calculator",
 		"1.0.0",
 		server.WithResourceCapabilities(true, true),
+		server.WithPromptCapabilities(true),
 		server.WithLogging(),
 	)
 	tool := mcp.NewTool("datetime_calc",
@@ -101,6 +120,9 @@ func BuildTimeCalculatorServer() {
 
 		return mcp.NewToolResultText(result), nil
 	})
+
+	// プロンプト
+	s = addPromptIntoServer(s)
 
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Printf("Server error: %v\n", err)

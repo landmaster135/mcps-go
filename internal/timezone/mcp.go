@@ -84,19 +84,19 @@ var availableTimezones = []string{
 
 // 一般的なタイムゾーンのマッピング（ユーザーフレンドリーな名前）
 var commonTimezones = map[string]string{
-	"jst":      "Asia/Tokyo",
-	"est":      "America/New_York",
-	"gmt":      "Europe/London",
-	"utc":      "UTC",
-	"pst":      "America/Los_Angeles",
-	"cst":      "America/Chicago",
-	"japan":    "Asia/Tokyo",
-	"us east":  "America/New_York",
-	"us west":  "America/Los_Angeles",
-	"uk":       "Europe/London",
-	"europe":   "Europe/Paris",
-	"china":    "Asia/Shanghai",
-	"korea":    "Asia/Seoul",
+	"jst":       "Asia/Tokyo",
+	"est":       "America/New_York",
+	"gmt":       "Europe/London",
+	"utc":       "UTC",
+	"pst":       "America/Los_Angeles",
+	"cst":       "America/Chicago",
+	"japan":     "Asia/Tokyo",
+	"us east":   "America/New_York",
+	"us west":   "America/Los_Angeles",
+	"uk":        "Europe/London",
+	"europe":    "Europe/Paris",
+	"china":     "Asia/Shanghai",
+	"korea":     "Asia/Seoul",
 	"australia": "Australia/Sydney",
 }
 
@@ -225,12 +225,31 @@ func (ts *TimezoneService) FindSimilarTimezones(timezone string) string {
 	return "UTC, Asia/Tokyo, America/New_York, Europe/London, Australia/Sydney"
 }
 
+func addPromptIntoServer(s *server.MCPServer) *server.MCPServer {
+	prompt := mcp.NewPrompt("system_prompt_01",
+		mcp.WithPromptDescription("This is a prompt for the timezone client."),
+	)
+	s.AddPrompt(prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "System prompt for the timezone client.",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("You use this great client for timezone well."),
+				},
+			},
+		}, nil
+	})
+	return s
+}
+
 // BuildTimezoneServer はタイムゾーンMCPサーバーを構築する関数です
 func BuildTimezoneServer() {
 	s := server.NewMCPServer(
 		"Timezone Service",
 		"1.0.0",
 		server.WithResourceCapabilities(true, true),
+		server.WithPromptCapabilities(true),
 		server.WithLogging(),
 	)
 
@@ -339,6 +358,9 @@ func BuildTimezoneServer() {
 
 		return mcp.NewToolResultText(result), nil
 	})
+
+	// プロンプト
+	s = addPromptIntoServer(s)
 
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Printf("サーバーエラー: %v\n", err)

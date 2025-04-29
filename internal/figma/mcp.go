@@ -25,6 +25,24 @@ func BuildFigmaServer() {
 	}
 }
 
+func addPromptIntoServer(s *server.MCPServer) *server.MCPServer {
+	prompt := mcp.NewPrompt("system_prompt_01",
+		mcp.WithPromptDescription("This is a prompt for the Figma client."),
+	)
+	s.AddPrompt(prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "System prompt for the Figma client.",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("You use this great client for Figma well"),
+				},
+			},
+		}, nil
+	})
+	return s
+}
+
 // createFigmaServer はFigma MCPサーバーを作成します
 func createFigmaServer() *server.MCPServer {
 	// 環境変数からFigma APIキーを取得
@@ -38,6 +56,7 @@ func createFigmaServer() *server.MCPServer {
 		"Figma API Server",
 		version,
 		server.WithResourceCapabilities(false, false),
+		server.WithPromptCapabilities(true),
 		server.WithLogging(),
 	)
 
@@ -77,6 +96,9 @@ func createFigmaServer() *server.MCPServer {
 		),
 	)
 	s.AddTool(downloadFigmaImagesTool, handleDownloadFigmaImages(client))
+
+	// プロンプト
+	s = addPromptIntoServer(s)
 
 	return s
 }

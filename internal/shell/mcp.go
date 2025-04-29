@@ -104,8 +104,8 @@ func (c *ShellClient) HandleGetAllowedCommands(ctx context.Context, request mcp.
 	return mcp.NewToolResultText(string(jsonResult)), nil
 }
 
-// SetShellCommandServer はシェルコマンド実行ツールを提供するMCPサーバを設定します
-func SetShellCommandServer(s *server.MCPServer) *server.MCPServer {
+// setShellCommandServer はシェルコマンド実行ツールを提供するMCPサーバを設定します
+func setShellCommandServer(s *server.MCPServer) *server.MCPServer {
 	// ShellClientを初期化
 	client := NewShellClient()
 
@@ -140,6 +140,24 @@ func SetShellCommandServer(s *server.MCPServer) *server.MCPServer {
 	return s
 }
 
+func addPromptIntoServer(s *server.MCPServer) *server.MCPServer {
+	prompt := mcp.NewPrompt("system_prompt_01",
+		mcp.WithPromptDescription("This is a prompt for the shell client."),
+	)
+	s.AddPrompt(prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "System prompt for the shell client.",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("You use this great client for shell well."),
+				},
+			},
+		}, nil
+	})
+	return s
+}
+
 // createShellServer はシェル操作用のMCPサーバーを作成します
 func createShellServer() *server.MCPServer {
 	// MCPサーバーを作成
@@ -147,11 +165,15 @@ func createShellServer() *server.MCPServer {
 		"Shell Command Server",
 		"1.0.0",
 		server.WithResourceCapabilities(true, true),
+		server.WithPromptCapabilities(true),
 		server.WithLogging(),
 	)
 
 	// シェルコマンド実行ツールを登録
-	s = SetShellCommandServer(s)
+	s = setShellCommandServer(s)
+
+	// プロンプト
+	s = addPromptIntoServer(s)
 
 	return s
 }

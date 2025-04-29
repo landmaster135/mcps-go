@@ -485,6 +485,24 @@ func performTest(query string, count int, offset int) (string, error) {
 	return "performed", nil
 }
 
+func addPromptIntoServer(s *server.MCPServer) *server.MCPServer {
+	prompt := mcp.NewPrompt("system_prompt_01",
+		mcp.WithPromptDescription("This is a search engine prompt"),
+	)
+	s.AddPrompt(prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "System prompt for search engine.",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("You use this search engine well."),
+				},
+			},
+		}, nil
+	})
+	return s
+}
+
 // MCPサーバを構築する関数
 func BuildBraveSearchServer() {
 	// APIキーのチェック
@@ -499,6 +517,7 @@ func BuildBraveSearchServer() {
 		"Brave Search",
 		"1.0.0",
 		server.WithResourceCapabilities(true, true),
+		server.WithPromptCapabilities(true),
 		server.WithLogging(),
 	)
 
@@ -592,6 +611,9 @@ func BuildBraveSearchServer() {
 		// 結果の返却
 		return mcp.NewToolResultText(results), nil
 	})
+
+	// プロンプト
+	s = addPromptIntoServer(s)
 
 	// サーバの起動
 	if err := server.ServeStdio(s); err != nil {

@@ -265,12 +265,31 @@ func stripHTMLTags(input string) string {
 	return re.ReplaceAllString(input, "")
 }
 
+func addPromptIntoServer(s *server.MCPServer) *server.MCPServer {
+	prompt := mcp.NewPrompt("system_prompt_01",
+		mcp.WithPromptDescription("This is a prompt for the YouTube transcript client."),
+	)
+	s.AddPrompt(prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "System prompt for the YouTube transcript client.",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("You use this great client for YouTube transcript well."),
+				},
+			},
+		}, nil
+	})
+	return s
+}
+
 // BuildYouTubeTranscriptServer はYouTube字幕取得MCPサーバーを構築します
 func BuildYouTubeTranscriptServer() {
 	s := server.NewMCPServer(
 		"YouTube Transcript Service",
 		"1.0.0",
 		server.WithResourceCapabilities(true, true),
+		server.WithPromptCapabilities(true),
 		server.WithLogging(),
 	)
 
@@ -290,7 +309,7 @@ func BuildYouTubeTranscriptServer() {
 
 	s.AddTool(tool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// タイムアウト付きコンテキストを作成（パフォーマンス改善）
-		ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+		_, cancel := context.WithTimeout(ctx, 60*time.Second)
 		defer cancel()
 
 		// パラメータの取得
@@ -345,6 +364,9 @@ func BuildYouTubeTranscriptServer() {
 			string(metadataJSON), videoID, lang, transcript)
 		return mcp.NewToolResultText(result), nil
 	})
+
+	// プロンプト
+	s = addPromptIntoServer(s)
 
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Printf("サーバーエラー: %v\n", err)

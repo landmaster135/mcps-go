@@ -11,11 +11,30 @@ import (
 	server "github.com/mark3labs/mcp-go/server"
 )
 
+func addPromptIntoServer(s *server.MCPServer) *server.MCPServer {
+	prompt := mcp.NewPrompt("system_prompt_01",
+		mcp.WithPromptDescription("This is a prompt for the HTTP client."),
+	)
+	s.AddPrompt(prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "System prompt for the HTTP client.",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("You use this great HTTP client well."),
+				},
+			},
+		}, nil
+	})
+	return s
+}
+
 func BuildMcpServer() {
 	s := server.NewMCPServer(
 		"HTTP requestor",
 		"1.0.0",
 		server.WithResourceCapabilities(true, true),
+		server.WithPromptCapabilities(true),
 		server.WithLogging(),
 	)
 	tool := mcp.NewTool("http_request",
@@ -70,6 +89,9 @@ func BuildMcpServer() {
 
 		return mcp.NewToolResultText(fmt.Sprintf("Status: %d\nBody: %s", resp.StatusCode, string(respBody))), nil
 	})
+
+	// プロンプト
+	s = addPromptIntoServer(s)
 
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Printf("Server error: %v\n", err)

@@ -156,10 +156,10 @@ func (s *SequentialThinkingServer) ProcessThought(args map[string]interface{}) (
 
 	// 結果を返す
 	result := map[string]interface{}{
-		"thoughtNumber":      data.ThoughtNumber,
-		"totalThoughts":      data.TotalThoughts,
-		"nextThoughtNeeded":  data.NextThoughtNeeded,
-		"branches":           getKeys(s.Branches),
+		"thoughtNumber":        data.ThoughtNumber,
+		"totalThoughts":        data.TotalThoughts,
+		"nextThoughtNeeded":    data.NextThoughtNeeded,
+		"branches":             getKeys(s.Branches),
 		"thoughtHistoryLength": len(s.ThoughtHistory),
 	}
 
@@ -186,12 +186,31 @@ func BuildSequentialThinkingServer() {
 	}
 }
 
+func addPromptIntoServer(s *server.MCPServer) *server.MCPServer {
+	prompt := mcp.NewPrompt("system_prompt_01",
+		mcp.WithPromptDescription("This is a prompt for the sequential thinking."),
+	)
+	s.AddPrompt(prompt, func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return &mcp.GetPromptResult{
+			Description: "System prompt for the sequential thinking.",
+			Messages: []mcp.PromptMessage{
+				{
+					Role:    mcp.RoleAssistant,
+					Content: mcp.NewTextContent("You use this great sequential thinking well."),
+				},
+			},
+		}, nil
+	})
+	return s
+}
+
 func createSequentialThinkingServer() *server.MCPServer {
 	// MCPサーバーを作成
 	s := server.NewMCPServer(
 		"Sequential Thinking Server",
 		version,
 		server.WithResourceCapabilities(false, false),
+		server.WithPromptCapabilities(true),
 		server.WithLogging(),
 	)
 
@@ -292,6 +311,9 @@ You should:
 	)
 
 	s.AddTool(sequentialThinkingTool, thinkingServer.HandleSequentialThinking)
+
+	// プロンプト
+	s = addPromptIntoServer(s)
 
 	return s
 }
