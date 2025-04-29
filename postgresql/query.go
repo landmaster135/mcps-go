@@ -174,8 +174,8 @@ func formatIndex(idx []IndexInfo) string {
 	return strings.Join(idxInfo, "; ")
 }
 
-// FetchTableWithComments はテーブル名とコメントを取得します
-func (c *PostgreSQLClient) FetchTableWithComments(ctx context.Context, tableName string) (TableSummary, error) {
+// fetchTableWithComments はテーブル名とコメントを取得します
+func (c *PostgreSQLClient) fetchTableWithComments(ctx context.Context, tableName string) (TableSummary, error) {
 	query := `
 		SELECT t.table_name,
 		       COALESCE(pg_catalog.obj_description(pg_catalog.pg_class.oid), '') AS table_comment
@@ -193,8 +193,8 @@ func (c *PostgreSQLClient) FetchTableWithComments(ctx context.Context, tableName
 	return table, nil
 }
 
-// FetchPrimaryKeys はテーブルの主キーカラムを取得します
-func (c *PostgreSQLClient) FetchPrimaryKeys(ctx context.Context, tableName string) ([]string, error) {
+// fetchPrimaryKeys はテーブルの主キーカラムを取得します
+func (c *PostgreSQLClient) fetchPrimaryKeys(ctx context.Context, tableName string) ([]string, error) {
 	query := `
 		SELECT a.attname
 		FROM pg_index i
@@ -226,8 +226,8 @@ func (c *PostgreSQLClient) FetchPrimaryKeys(ctx context.Context, tableName strin
 	return primaryKeys, nil
 }
 
-// FetchUniqueKeys はテーブルの一意キー制約を取得します
-func (c *PostgreSQLClient) FetchUniqueKeys(ctx context.Context, tableName string) ([]UniqueKey, error) {
+// fetchUniqueKeys はテーブルの一意キー制約を取得します
+func (c *PostgreSQLClient) fetchUniqueKeys(ctx context.Context, tableName string) ([]UniqueKey, error) {
 	query := `
 		SELECT
 			c.conname AS constraint_name,
@@ -275,8 +275,8 @@ func (c *PostgreSQLClient) FetchUniqueKeys(ctx context.Context, tableName string
 	return uniqueKeys, nil
 }
 
-// FetchForeignKeys はテーブルの外部キー制約を取得します
-func (c *PostgreSQLClient) FetchForeignKeys(ctx context.Context, tableName string) ([]ForeignKey, error) {
+// fetchForeignKeys はテーブルの外部キー制約を取得します
+func (c *PostgreSQLClient) fetchForeignKeys(ctx context.Context, tableName string) ([]ForeignKey, error) {
 	query := `
 		SELECT
 			c.conname AS constraint_name,
@@ -333,8 +333,8 @@ func (c *PostgreSQLClient) FetchForeignKeys(ctx context.Context, tableName strin
 	return foreignKeys, nil
 }
 
-// FetchTableColumns はテーブルのカラム情報を取得します
-func (c *PostgreSQLClient) FetchTableColumns(ctx context.Context, tableName string) ([]ColumnInfo, error) {
+// fetchTableColumns はテーブルのカラム情報を取得します
+func (c *PostgreSQLClient) fetchTableColumns(ctx context.Context, tableName string) ([]ColumnInfo, error) {
 	query := `
 		SELECT
 			c.column_name,
@@ -378,8 +378,8 @@ func (c *PostgreSQLClient) FetchTableColumns(ctx context.Context, tableName stri
 	return columns, nil
 }
 
-// FetchTableIndexes はテーブルのインデックス情報を取得します
-func (c *PostgreSQLClient) FetchTableIndexes(ctx context.Context, tableName string) ([]IndexInfo, error) {
+// fetchTableIndexes はテーブルのインデックス情報を取得します
+func (c *PostgreSQLClient) fetchTableIndexes(ctx context.Context, tableName string) ([]IndexInfo, error) {
 	query := `
 		SELECT
 			i.relname AS index_name,
@@ -437,40 +437,40 @@ func (c *PostgreSQLClient) FetchTableIndexes(ctx context.Context, tableName stri
 	return indexes, nil
 }
 
-// GetTableDetail はテーブルの詳細情報を取得します
-func (c *PostgreSQLClient) GetTableDetail(ctx context.Context, tableName string) (*TableDetail, error) {
+// getTableDetail はテーブルの詳細情報を取得します
+func (c *PostgreSQLClient) getTableDetail(ctx context.Context, tableName string) (*TableDetail, error) {
 	// テーブル情報を取得
-	tableInfo, err := c.FetchTableWithComments(ctx, tableName)
+	tableInfo, err := c.fetchTableWithComments(ctx, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("テーブル情報の取得に失敗しました: %w", err)
 	}
 
 	// 主キー情報を取得
-	primaryKeys, err := c.FetchPrimaryKeys(ctx, tableName)
+	primaryKeys, err := c.fetchPrimaryKeys(ctx, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("主キー情報の取得に失敗しました: %w", err)
 	}
 
 	// 一意キー情報を取得
-	uniqueKeys, err := c.FetchUniqueKeys(ctx, tableName)
+	uniqueKeys, err := c.fetchUniqueKeys(ctx, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("一意キー情報の取得に失敗しました: %w", err)
 	}
 
 	// 外部キー情報を取得
-	foreignKeys, err := c.FetchForeignKeys(ctx, tableName)
+	foreignKeys, err := c.fetchForeignKeys(ctx, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("外部キー情報の取得に失敗しました: %w", err)
 	}
 
 	// カラム情報を取得
-	columns, err := c.FetchTableColumns(ctx, tableName)
+	columns, err := c.fetchTableColumns(ctx, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("カラム情報の取得に失敗しました: %w", err)
 	}
 
 	// インデックス情報を取得
-	indexes, err := c.FetchTableIndexes(ctx, tableName)
+	indexes, err := c.fetchTableIndexes(ctx, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("インデックス情報の取得に失敗しました: %w", err)
 	}
@@ -494,7 +494,7 @@ func (c *PostgreSQLClient) HandleToGetTableSchema(ctx context.Context, request m
 	tableName := getRequiredStringParam(request.Params.Arguments, "table_name")
 
 	// テーブルの詳細情報を取得
-	detail, err := c.GetTableDetail(ctx, tableName)
+	detail, err := c.getTableDetail(ctx, tableName)
 	if err != nil {
 		return returnError(err)
 	}
@@ -511,4 +511,8 @@ func (c *PostgreSQLClient) HandleToGetTableSchema(ctx context.Context, request m
 	}
 
 	return returnTextResult(output.String())
+}
+
+func (c *PostgreSQLClient) HandleToListTables(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+
 }

@@ -20,8 +20,8 @@ type Table struct {
 	Name string `json:"table_name"`
 }
 
-// GetTables はデータベース内のテーブル一覧を取得します
-func (c *PostgreSQLClient) GetTables() ([]Table, error) {
+// getTablesMinimum はデータベース内のテーブル一覧を取得します
+func (c *PostgreSQLClient) getTablesMinimum() ([]Table, error) {
 	query := `
 		SELECT table_name
 		FROM information_schema.tables
@@ -50,41 +50,11 @@ func (c *PostgreSQLClient) GetTables() ([]Table, error) {
 	return tables, nil
 }
 
-// GetTableSchema はテーブルのスキーマ情報を取得します
-func (c *PostgreSQLClient) GetTableSchema(tableName string) ([]Column, error) {
-	query := `
-		SELECT column_name, data_type
-		FROM information_schema.columns
-		WHERE table_name = $1
-	`
-
-	rows, err := c.db.Query(query, tableName)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var columns []Column
-	for rows.Next() {
-		var column Column
-		if err := rows.Scan(&column.Name, &column.DataType); err != nil {
-			return nil, err
-		}
-		columns = append(columns, column)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return columns, nil
-}
-
 // HandleToGetTableSchemaMinimum はテーブルの最小限のスキーマ情報を取得して、結果をJSON形式で返します
 func (c *PostgreSQLClient) HandleToGetTableSchemaMinimum(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	tableName := getRequiredStringParam(request.Params.Arguments, "table_name")
 
-	columns, err := c.GetTableSchemaMinimum(tableName)
+	columns, err := c.getTableSchemaMinimum(tableName)
 	if err != nil {
 		return returnError(err)
 	}
@@ -92,8 +62,8 @@ func (c *PostgreSQLClient) HandleToGetTableSchemaMinimum(ctx context.Context, re
 	return returnJSONResult(columns)
 }
 
-// GetTableSchemaMinimum はテーブルの最小限のスキーマ情報を取得します
-func (c *PostgreSQLClient) GetTableSchemaMinimum(tableName string) ([]Column, error) {
+// getTableSchemaMinimum はテーブルの最小限のスキーマ情報を取得します
+func (c *PostgreSQLClient) getTableSchemaMinimum(tableName string) ([]Column, error) {
 	query := `
 		SELECT column_name, data_type
 		FROM information_schema.columns
@@ -122,8 +92,8 @@ func (c *PostgreSQLClient) GetTableSchemaMinimum(tableName string) ([]Column, er
 	return columns, nil
 }
 
-// ExecuteQuery はSQL読み取り専用クエリを実行します
-func (c *PostgreSQLClient) ExecuteQuery(ctx context.Context, sqlQuery string) ([]map[string]interface{}, error) {
+// executeQuery はSQL読み取り専用クエリを実行します
+func (c *PostgreSQLClient) executeQuery(ctx context.Context, sqlQuery string) ([]map[string]interface{}, error) {
 	// トランザクションを開始（読み取り専用）
 	tx, err := c.db.BeginTx(ctx, &sql.TxOptions{
 		ReadOnly: true,
@@ -189,7 +159,7 @@ func (c *PostgreSQLClient) ExecuteQuery(ctx context.Context, sqlQuery string) ([
 func (c *PostgreSQLClient) HandleToQuery(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	sqlQuery := getRequiredStringParam(request.Params.Arguments, "sql")
 
-	result, err := c.ExecuteQuery(ctx, sqlQuery)
+	result, err := c.executeQuery(ctx, sqlQuery)
 	if err != nil {
 		return returnError(err)
 	}
@@ -197,9 +167,9 @@ func (c *PostgreSQLClient) HandleToQuery(ctx context.Context, request mcp.CallTo
 	return returnJSONResult(result)
 }
 
-// HandleToListTables はデータベース内のテーブル一覧を取得して、結果をJSON形式で返します
-func (c *PostgreSQLClient) HandleToListTables(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	tables, err := c.GetTables()
+// HandleToListTablesMinimum はデータベース内のテーブル一覧を取得して、結果をJSON形式で返します
+func (c *PostgreSQLClient) HandleToListTablesMinimum(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	tables, err := c.getTablesMinimum()
 	if err != nil {
 		return returnError(err)
 	}

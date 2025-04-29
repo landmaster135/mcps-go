@@ -38,11 +38,11 @@ func SetPostgreSQLQueryServer(databaseURL string, s *server.MCPServer) *server.M
 	)
 	s.AddTool(getTableSchemaTool, client.HandleToGetTableSchema)
 
-	// ツール3: テーブル一覧の取得
-	listTablesTool := mcp.NewTool("list_tables",
+	// ツール3: テーブル一覧の取得（最小限の情報）
+	listTablesMinimumTool := mcp.NewTool("list_tables_minimum",
 		mcp.WithDescription("List all tables in the database"),
 	)
-	s.AddTool(listTablesTool, client.HandleToListTables)
+	s.AddTool(listTablesMinimumTool, client.HandleToListTablesMinimum)
 
 	// ツール4: テーブルの最小限のスキーマ情報を取得
 	getTableSchemaMinimumTool := mcp.NewTool("get_table_schema_minimum",
@@ -53,6 +53,12 @@ func SetPostgreSQLQueryServer(databaseURL string, s *server.MCPServer) *server.M
 		),
 	)
 	s.AddTool(getTableSchemaMinimumTool, client.HandleToGetTableSchemaMinimum)
+
+	// ツール5: テーブル一覧の取得
+	listTablesTool := mcp.NewTool("list_tables",
+		mcp.WithDescription("List all tables in the database"),
+	)
+	s.AddTool(listTablesTool, client.HandleToListTables)
 
 	return s
 }
