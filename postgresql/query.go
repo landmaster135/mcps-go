@@ -75,6 +75,30 @@ const describeTableDetailTemplate = `# テーブル: {{.Name}}{{if .Comment}} - 
 [INDEX: {{formatIndex .Indexes}}]{{end}}
 `
 
+// ListTablesData はテーブル一覧のテンプレートに渡すデータ構造
+type ListTablesData struct {
+	Tables []TableSummary
+}
+
+// listTablesTemplate はテーブル一覧の出力フォーマット
+const listTablesTemplate = `# データベースのテーブル一覧 (全{{len .Tables}}件)
+フォーマット:
+テーブル名 — テーブルコメント
+  ├─ PK: [主キー]
+  ├─ UK: [一意キー1; 一意キー2; ...]
+  └─ FK: [外部キー → 参照先テーブル.カラム; ...]
+
+{{range .Tables -}}
+- **{{.Name}}** — {{.Comment}}
+  {{if len .PK}}
+  - PK: [{{formatPK .PK}}]{{end}}
+  {{if len .UK}}
+  - UK: [{{formatUK .UK}}]{{end}}
+  {{if len .FK}}
+  - FK: [{{formatFK .FK}}]{{end}}
+{{end -}}
+`
+
 var funcMap = template.FuncMap{
 	"formatPK":     formatPK,
 	"formatUK":     formatUK,
@@ -513,6 +537,86 @@ func (c *PostgreSQLClient) HandleToGetTableSchema(ctx context.Context, request m
 	return returnTextResult(output.String())
 }
 
-func (c *PostgreSQLClient) HandleToListTables(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// getAllTableSummaries はデータベース内の全てのテーブルのサマリー情報を取得します
+func (c *PostgreSQLClient) getAllTableSummaries(ctx context.Context) ([]TableSummary, error) {
+	// テーブル一覧を取得
+	query := `
+		SELECT t.table_name,
+		       COALESCE(pg_catalog.obj_description(pg_catalog.pg_class.oid), '') AS table_comment
+		FROM information_schema.tables t
+		JOIN pg_catalog.pg_class ON pg_catalog.pg_class.relname = t.table_name
+		WHERE t.table_schema = 'public'
+		ORDER BY t.table_name
+	`
 
+	rows, err := c.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tables []TableSummary
+	for rows.Next() {
+		var table TableSummary
+		if err := rows.Scan(&table.Name, &table.Comment); err != nil {
+			return nil, err
+		}
+		tables = append(tables, table)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// 各テーブルの追加情報を取得
+	for i := range tables {
+		// 主キー情報を取得
+		tables[i].PK, err = c.fetchPrimaryKeys(ctx, tables[i].Name)
+		if err != nil {
+			return nil, err
+		}
+
+		// 一意キー情報を取得
+		tables[i].UK, err = c.fetchUniqueKeys(ctx, tables[i].Name)
+		if err != nil {
+			return nil, err
+		}
+
+		// 外部キー情報を取得
+		tables[i].FK, err = c.fetchForeignKeys(ctx, tables[i].Name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return tables, nil
+}
+
+// HandleToListTables はデータベース内のテーブル一覧を取得して、結果をテキスト形式で返します
+func (c *PostgreSQLClient) HandleToListTables(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// テーブル情報の取得
+	tables, err := c.getAllTableSummaries(ctx)
+	if err != nil {
+		return returnError(fmt.Errorf("テーブル情報の取得に失敗しました: %w", err))
+	}
+
+	// テーブルが見つからない
+	if len(tables) == 0 {
+		return returnTextResult("データベース内にテーブルが存在しません。")
+	}
+
+	// 出力の作成
+	var output bytes.Buffer
+	tmpl, err := template.New("listTables").Funcs(funcMap).Parse(listTablesTemplate)
+	if err != nil {
+		return returnError(fmt.Errorf("テンプレートの解析に失敗しました: %w", err))
+	}
+
+	if err := tmpl.Execute(&output, ListTablesData{
+		Tables: tables,
+	}); err != nil {
+		return returnError(fmt.Errorf("テンプレートの実行に失敗しました: %w", err))
+	}
+
+	return returnTextResult(output.String())
 }
