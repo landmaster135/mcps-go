@@ -14,6 +14,7 @@ import (
 	http_request "github.com/landmaster135/mcps-go/internal/http_request"
 	postgresql "github.com/landmaster135/mcps-go/internal/postgresql"
 	sequentialthinking "github.com/landmaster135/mcps-go/internal/sequentialthinking"
+	gdrive "github.com/landmaster135/mcps-go/internal/gdrive"
 	// shell "github.com/landmaster135/mcps-go/internal/shell" // TODO: unapplicable for WSL...
 	timezone "github.com/landmaster135/mcps-go/internal/timezone"
 	util "github.com/landmaster135/mcps-go/internal/util"
@@ -59,6 +60,8 @@ func main() {
 		sequentialthinking.BuildSequentialThinkingServer()
 	case "figma":
 		figma.BuildFigmaServer()
+	case "gdrive":
+		gdrive.BuildGoogleDriveServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)
