@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "arithmetic_calculator": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "arith_calc"
       ],
@@ -9,7 +9,7 @@
       "autoApprove": []
     },
     "datetime_calculator": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "datetime_calc"
       ],
@@ -17,7 +17,7 @@
       "autoApprove": []
     },
     "http_request": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "http_request"
       ],
@@ -25,7 +25,7 @@
       "autoApprove": []
     },
     "brave_web_search": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "brave_web_search"
       ],
@@ -38,7 +38,7 @@
       ]
     },
     "get-current-timezone": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "timezone"
       ],
@@ -46,7 +46,7 @@
       "autoApprove": []
     },
     "filesystem": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "filesystem"
       ],
@@ -54,7 +54,7 @@
       "autoApprove": []
     },
     "get_youtube_transcript": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "youtube_transcript"
       ],
@@ -62,7 +62,7 @@
       "autoApprove": []
     },
     "github": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "github"
       ],
@@ -73,7 +73,7 @@
       "autoApprove": []
     },
     "postgresql": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "postgresql"
       ],
@@ -84,7 +84,7 @@
       "autoApprove": []
     },
     "everart": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "everart"
       ],
@@ -95,7 +95,7 @@
       "autoApprove": []
     },
     "sequentialthinking": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "sequentialthinking"
       ],
@@ -103,7 +103,7 @@
       "autoApprove": []
     },
     "figma": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "figma"
       ],
@@ -114,7 +114,7 @@
       "autoApprove": []
     },
     "google_drive": {
-      "command": "/home/user/mcps-go/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "gdrive"
       ],

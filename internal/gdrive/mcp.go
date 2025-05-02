@@ -35,7 +35,7 @@ func createGoogleDriveServer() *server.MCPServer {
 	// 環境変数から認証情報のパスを取得
 	credentialsPath := os.Getenv("GDRIVE_CREDENTIALS_PATH")
 	if credentialsPath == "" {
-		fmt.Println("Warning: GDRIVE_CREDENTIALS_PATH environment variable not set. Using default path.")
+		fmt.Fprintln(os.Stderr, "Warning: GDRIVE_CREDENTIALS_PATH environment variable not set. Using default path.")
 		credentialsPath = ".gdrive-server-credentials.json"
 	}
 
@@ -63,6 +63,6 @@ func BuildGoogleDriveServer() {
 
 	// サーバーを起動
 	if err := server.ServeStdio(s); err != nil {
-		fmt.Printf("Server error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 	}
 }

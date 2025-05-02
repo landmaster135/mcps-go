@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	mcp "github.com/mark3labs/mcp-go/mcp"
@@ -25,14 +26,14 @@ type PostgreSQLClient struct {
 func NewPostgreSQLClient(databaseURL string) (*PostgreSQLClient, error) {
 	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {
-		fmt.Printf("Error opening database connection: %v\n", err)
-    return nil, err
+		fmt.Fprintf(os.Stderr, "Error opening database connection: %v\n", err)
+		return nil, err
 	}
 
 	// 接続テスト
 	if err := db.Ping(); err != nil {
-		fmt.Printf("Error pinging database: %v\n", err)
-    return nil, err
+		fmt.Fprintf(os.Stderr, "Error pinging database: %v\n", err)
+		return nil, err
 	}
 
 	// リソースベースURLを作成

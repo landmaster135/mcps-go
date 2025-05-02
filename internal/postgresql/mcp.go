@@ -14,10 +14,10 @@ func setPostgreSQLQueryServer(databaseURL string, s *server.MCPServer) *server.M
 	// PostgreSQLクライアントを初期化
 	client, err := NewPostgreSQLClient(databaseURL)
 	if err != nil {
-		fmt.Printf("Failed to create PostgreSQL client: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Failed to create PostgreSQL client: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println(client)
+	fmt.Fprintln(os.Stderr, client)
 
 	// ツール1: SQL読み取り専用クエリの実行
 	queryTool := mcp.NewTool("query",
@@ -86,7 +86,7 @@ func createPostgreSQLServer() *server.MCPServer {
 	// 環境変数からデータベースURLを取得
 	databaseURL := os.Getenv("POSTGRESQL_DATABASE_URL")
 	if databaseURL == "" {
-		fmt.Println("Error: POSTGRESQL_DATABASE_URL environment variable not set.")
+		fmt.Fprintln(os.Stderr, "Error: POSTGRESQL_DATABASE_URL environment variable not set.")
 		os.Exit(1)
 	}
 
@@ -112,6 +112,6 @@ func BuildPostgreSQLServer() {
 
 	// サーバーを起動
 	if err := server.ServeStdio(s); err != nil {
-		fmt.Printf("Server error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
 	}
 }

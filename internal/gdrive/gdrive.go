@@ -69,18 +69,18 @@ func getClient(config *oauth2.Config) *http.Client {
 // getTokenFromWeb はウェブフローを使用して新しいトークンを取得します
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser then type the "+
+	fmt.Fprintf(os.Stderr, "Go to the following link in your browser then type the "+
 		"authorization code: \n%v\n", authURL)
 
 	var authCode string
 	if _, err := fmt.Scan(&authCode); err != nil {
-		fmt.Printf("Unable to read authorization code: %v", err)
+		fmt.Fprintf(os.Stderr, "Unable to read authorization code: %v", err)
 		return nil
 	}
 
 	tok, err := config.Exchange(context.Background(), authCode)
 	if err != nil {
-		fmt.Printf("Unable to retrieve token from web: %v", err)
+		fmt.Fprintf(os.Stderr, "Unable to retrieve token from web: %v", err)
 		return nil
 	}
 	return tok
@@ -100,10 +100,10 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 
 // saveToken はトークンをファイルに保存します
 func saveToken(path string, token *oauth2.Token) {
-	fmt.Printf("Saving credential file to: %s\n", path)
+	fmt.Fprintf(os.Stderr, "Saving credential file to: %s\n", path)
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		fmt.Printf("Unable to cache oauth token: %v", err)
+		fmt.Fprintf(os.Stderr, "Unable to cache oauth token: %v", err)
 		return
 	}
 	defer f.Close()
@@ -319,7 +319,7 @@ func SetGoogleDriveServer(credentialsPath string, s *server.MCPServer) *server.M
 	// GoogleDriveクライアントを初期化
 	client, err := NewGoogleDriveClient(credentialsPath)
 	if err != nil {
-		fmt.Printf("Error initializing Google Drive client: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error initializing Google Drive client: %v\n", err)
 		return s
 	}
 
