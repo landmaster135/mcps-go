@@ -27,15 +27,6 @@
         "BRAVE_API_KEY": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
       }
     },
-    "brave_local_search": {
-      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
-      "args": [
-        "brave_local_search"
-      ],
-      "env": {
-        "BRAVE_API_KEY": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      }
-    },
     "get-current-timezone": {
       "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
       "args": [
@@ -113,16 +104,10 @@
       "disabled": false,
       "autoApprove": []
     },
-    "duckduckgo_web_search": {
-      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
-      "args": [
-        "duckduckgo_web_search"
-      ]
-    },
     "duckduckgo_instant_search": {
       "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
       "args": [
-        "duckduckgo_instant_search"
+        "duckduckgo_search"
       ]
     },
     "claude_code": {

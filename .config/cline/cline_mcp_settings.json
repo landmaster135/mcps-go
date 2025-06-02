@@ -37,19 +37,6 @@
         "brave_web_search"
       ]
     },
-    "brave_local_search": {
-      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
-      "args": [
-        "brave_local_search"
-      ],
-      "env": {
-        "BRAVE_API_KEY": "YOUR_BRAVE_API_KEY"
-      },
-      "disabled": false,
-      "autoApprove": [
-        "brave_web_search"
-      ]
-    },
     "get-current-timezone": {
       "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
@@ -137,18 +124,10 @@
       "disabled": false,
       "autoApprove": []
     },
-    "duckduckgo_web_search": {
-      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
-      "args": [
-        "duckduckgo_web_search"
-      ],
-      "disabled": false,
-      "autoApprove": []
-    },
     "duckduckgo_instant_search": {
       "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
-        "duckduckgo_instant_search"
+        "duckduckgo_search"
       ],
       "disabled": false,
       "autoApprove": []

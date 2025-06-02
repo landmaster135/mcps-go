@@ -95,7 +95,7 @@ func performWebSearch(query string, count int, offset int) (string, error) {
 	if count > 50 {
 		count = 50 // 制限
 	}
-	
+
 	// オフセットは実装が難しいため、最初のページのみサポート
 	u.RawQuery = q.Encode()
 
@@ -185,15 +185,15 @@ func parseSearchResults(html string, maxResults int) ([]DuckDuckGoWebResult, err
 		linkPattern = `<a[^>]+href="([^"]+)"[^>]*>([^<]+)</a>`
 		linkRegex = regexp.MustCompile(linkPattern)
 		linkMatches = linkRegex.FindAllStringSubmatch(html, -1)
-		
+
 		// フィルタリング - 明らかに検索結果ではないリンクを除外
 		var filteredMatches [][]string
 		for _, match := range linkMatches {
 			url := match[1]
 			title := match[2]
 			// 内部リンクや画像リンクを除外
-			if !strings.Contains(url, "duckduckgo.com") && 
-			   !strings.HasPrefix(url, "#") && 
+			if !strings.Contains(url, "duckduckgo.com") &&
+			   !strings.HasPrefix(url, "#") &&
 			   !strings.HasPrefix(url, "javascript:") &&
 			   len(title) > 5 { // タイトルが短すぎるものを除外
 				filteredMatches = append(filteredMatches, match)
@@ -210,7 +210,7 @@ func parseSearchResults(html string, maxResults int) ([]DuckDuckGoWebResult, err
 
 		url := linkMatch[1]
 		title := linkMatch[2]
-		
+
 		// URLのデコード
 		decodedURL, err := decodeURL(url)
 		if err == nil {
@@ -247,7 +247,7 @@ func decodeURL(rawURL string) (string, error) {
 		if err != nil {
 			return rawURL, err
 		}
-		
+
 		uddg := u.Query().Get("uddg")
 		if uddg != "" {
 			decoded, err := url.QueryUnescape(uddg)
@@ -273,16 +273,16 @@ func cleanText(text string) string {
 	text = strings.ReplaceAll(text, "&gt;", ">")
 	text = strings.ReplaceAll(text, "&quot;", "\"")
 	text = strings.ReplaceAll(text, "&#39;", "'")
-	
+
 	// HTMLタグの除去
 	tagRegex := regexp.MustCompile(`<[^>]*>`)
 	text = tagRegex.ReplaceAllString(text, "")
-	
+
 	// 余分な空白の除去
 	text = strings.TrimSpace(text)
 	spaceRegex := regexp.MustCompile(`\s+`)
 	text = spaceRegex.ReplaceAllString(text, " ")
-	
+
 	return text
 }
 
@@ -344,11 +344,11 @@ func performInstantSearch(query string) (string, error) {
 	// Abstract（要約）
 	if abstract, ok := data["Abstract"].(string); ok && abstract != "" {
 		results = append(results, fmt.Sprintf("Abstract: %s", abstract))
-		
+
 		if source, ok := data["AbstractSource"].(string); ok && source != "" {
 			results = append(results, fmt.Sprintf("Source: %s", source))
 		}
-		
+
 		if url, ok := data["AbstractURL"].(string); ok && url != "" {
 			results = append(results, fmt.Sprintf("URL: %s", url))
 		}
@@ -357,7 +357,7 @@ func performInstantSearch(query string) (string, error) {
 	// Definition（定義）
 	if definition, ok := data["Definition"].(string); ok && definition != "" {
 		results = append(results, fmt.Sprintf("Definition: %s", definition))
-		
+
 		if source, ok := data["DefinitionSource"].(string); ok && source != "" {
 			results = append(results, fmt.Sprintf("Source: %s", source))
 		}
@@ -366,7 +366,7 @@ func performInstantSearch(query string) (string, error) {
 	// Answer（回答）
 	if answer, ok := data["Answer"].(string); ok && answer != "" {
 		results = append(results, fmt.Sprintf("Answer: %s", answer))
-		
+
 		if answerType, ok := data["AnswerType"].(string); ok && answerType != "" {
 			results = append(results, fmt.Sprintf("Type: %s", answerType))
 		}
