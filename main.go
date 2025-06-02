@@ -7,6 +7,7 @@ import (
 	arith_calc "github.com/landmaster135/mcps-go/internal/arith_calc"
 	brave_search "github.com/landmaster135/mcps-go/internal/brave_search"
 	datetime_calc "github.com/landmaster135/mcps-go/internal/datetime_calc"
+	duckduckgo_search "github.com/landmaster135/mcps-go/internal/duckduckgo_search"
 	everart "github.com/landmaster135/mcps-go/internal/everart"
 	figma "github.com/landmaster135/mcps-go/internal/figma"
 	filesystem "github.com/landmaster135/mcps-go/internal/filesystem"
@@ -44,6 +45,8 @@ func main() {
 		http_request.BuildMcpServer()
 	case "brave_web_search":
 		brave_search.BuildBraveSearchServer()
+	case "duckduckgo_search":
+		duckduckgo_search.BuildDuckDuckGoSearchServer()
 	case "timezone":
 		timezone.BuildTimezoneServer()
 	case "filesystem":
