@@ -11,6 +11,7 @@ import (
 	everart "github.com/landmaster135/mcps-go/internal/everart"
 	figma "github.com/landmaster135/mcps-go/internal/figma"
 	filesystem "github.com/landmaster135/mcps-go/internal/filesystem"
+	git_diff_recorder "github.com/landmaster135/mcps-go/internal/git_diff_recorder"
 	github "github.com/landmaster135/mcps-go/internal/github"
 	http_request "github.com/landmaster135/mcps-go/internal/http_request"
 	postgresql "github.com/landmaster135/mcps-go/internal/postgresql"
@@ -65,6 +66,8 @@ func main() {
 		figma.BuildFigmaServer()
 	case "gdrive":
 		gdrive.BuildGoogleDriveServer()
+	case "git_diff_recorder":
+		git_diff_recorder.BuildMcpServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)

@@ -131,6 +131,14 @@
       ],
       "disabled": false,
       "autoApprove": []
+    },
+    "git_commit_message_generator": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "git_diff_recorder"
+      ],
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }

@@ -110,6 +110,14 @@
         "duckduckgo_search"
       ]
     },
+    "git_commit_message_generator": {
+      "command": "%HOMEPATH%\\Documents\\mcp_server\\mcps-go.exe",
+      "args": [
+        "git_diff_recorder"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
     "claude_code": {
       "command": "wsl",
       "args": [

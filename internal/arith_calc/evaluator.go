@@ -158,7 +158,7 @@ func SetFileLineCountEvaluatorServer(s *server.MCPServer) *server.MCPServer {
 		mcp.WithDescription("ファイルの行数が指定された閾値より大きいかどうかを評価します"),
 		mcp.WithString("file_path",
 			mcp.Required(),
-			mcp.Description("評価するファイルのパス"),
+			mcp.Description("評価するファイルの絶対パス"),
 		),
 		mcp.WithNumber("threshold",
 			mcp.Required(),

@@ -131,6 +131,14 @@
       ],
       "disabled": false,
       "autoApprove": []
+    },
+    "git_commit_message_generator": {
+      "command": "/home/nov/discord_bot_ayuayu/src/discord_bot_ayuayu/agents/external_mcp/mcps-go",
+      "args": [
+        "git_diff_recorder"
+      ],
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }
