@@ -1,0 +1,47 @@
+{
+  "enableAllProjectMcpServers": false,
+  "permissions": {
+    "allow": [
+      "Bash(npm run lint)",
+      "Bash(npm run test:*)",
+      "Read(~/.bashrc)"
+    ],
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(rm:*)",
+      "Bash(rm -rf:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(git reset:*)",
+      "Bash(git rebase:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Read(.env*)",
+      "Read(env.yml*)",
+      "Read(env_staging.yml*)",
+      "Read(id_rsa)",
+      "Read(id_ed25519)",
+      "Read(**/*token*)",
+      "Read(**/*key*)",
+      "Write(.env*)",
+      "Write(env.yml*)",
+      "Write(env_staging.yml*)",
+      "Write(**/secrets/**)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(nc:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm remove:*)",
+      "Bash(psql:*)",
+      "Bash(mysql:*)",
+      "Bash(mongod:*)",
+      "mcp__supabase__execute_sql"
+    ]
+  },
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": 60000,
+    "BASH_MAX_TIMEOUT_MS": 60000,
+    "MCP_TIMEOUT": 60000,
+    "MCP_TOOL_TIMEOUT": 60000
+  }
+}

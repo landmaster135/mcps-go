@@ -1,7 +1,10 @@
 # mcps-go
 ![Go](https://img.shields.io/badge/Go-1.23-%2300ADD8?logo=go)
-![Coverage](https://img.shields.io/badge/Coverage-59.4%25-yellow)
+![Coverage](https://img.shields.io/badge/Coverage-47.9%25-yellow)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+
+# Introduction
+[Introduction in japanese](https://www.endorphinbath.com/go-cline-mcp-server-date-calculation-web-search)
 
 # Execution
 
@@ -16,7 +19,7 @@ Nothing. A binary file only.
 
 ## Build
 ```bash
-go build main.go
+./scripts/build.sh
 ```
 
 ## Build with Docker
@@ -34,7 +37,7 @@ Add the following into `cline_mcp_setting.json`
 {
   "mcpServers": {
     "arithmetic_calculator": {
-      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "arith_calc"
       ],
@@ -42,7 +45,7 @@ Add the following into `cline_mcp_setting.json`
       "autoApprove": []
     },
     "datetime_calculator": {
-      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "datetime_calc"
       ],
@@ -50,7 +53,7 @@ Add the following into `cline_mcp_setting.json`
       "autoApprove": []
     },
     "http_request": {
-      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "http_request"
       ],
@@ -58,7 +61,7 @@ Add the following into `cline_mcp_setting.json`
       "autoApprove": []
     },
     "brave_web_search": {
-      "command": "/home/nov/mcps-go-for-claude/mcps-go",
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
       "args": [
         "brave_web_search"
       ],
@@ -73,6 +76,10 @@ Add the following into `cline_mcp_setting.json`
 
 
 ```
+
+## GitHub PAT
+The following permissions are required.
+- `repo`
 
 # Contributing
 Welcome.

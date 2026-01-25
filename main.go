@@ -4,11 +4,23 @@ import (
 	"fmt"
 	"os"
 
-	arith_calc "example.com/mcps-go/arith_calc"
-	brave_search "example.com/mcps-go/brave-search"
-	datetime_calc "example.com/mcps-go/datetime_calc"
-	http_request "example.com/mcps-go/http_request"
-	mypkg "example.com/mcps-go/mypkg"
+	arith_calc "github.com/landmaster135/mcps-go/internal/arith_calc"
+	brave_search "github.com/landmaster135/mcps-go/internal/brave_search"
+	datetime_calc "github.com/landmaster135/mcps-go/internal/datetime_calc"
+	duckduckgo_search "github.com/landmaster135/mcps-go/internal/duckduckgo_search"
+	everart "github.com/landmaster135/mcps-go/internal/everart"
+	figma "github.com/landmaster135/mcps-go/internal/figma"
+	filesystem "github.com/landmaster135/mcps-go/internal/filesystem"
+	git_diff_recorder "github.com/landmaster135/mcps-go/internal/git_diff_recorder"
+	github "github.com/landmaster135/mcps-go/internal/github"
+	http_request "github.com/landmaster135/mcps-go/internal/http_request"
+	postgresql "github.com/landmaster135/mcps-go/internal/postgresql"
+	sequentialthinking "github.com/landmaster135/mcps-go/internal/sequentialthinking"
+	gdrive "github.com/landmaster135/mcps-go/internal/gdrive"
+	// shell "github.com/landmaster135/mcps-go/internal/shell" // TODO: unapplicable for WSL...
+	timezone "github.com/landmaster135/mcps-go/internal/timezone"
+	util "github.com/landmaster135/mcps-go/internal/util"
+	youtube_transcript "github.com/landmaster135/mcps-go/internal/youtube_transcript"
 )
 
 func main() {
@@ -20,28 +32,45 @@ func main() {
 		os.Exit(1)
 	}
 	for i, arg := range args[1:] {
-		fmt.Printf("argument %d: %s\n", i+1, arg)
+		fmt.Fprintf(os.Stderr, "argument %d: %s\n", i+1, arg)
 	}
 
-	mypkg.OutLog("main: building mcp server...")
+	util.OutLog("main: building mcp server...")
 	a1 := args[1]
 	switch a1 {
 	case "arith_calc":
-		arith_calc.BuildCalculatorServer()
+		arith_calc.BuildArithCalculatorServer()
 	case "datetime_calc":
 		datetime_calc.BuildTimeCalculatorServer()
 	case "http_request":
 		http_request.BuildMcpServer()
 	case "brave_web_search":
 		brave_search.BuildBraveSearchServer()
+	case "duckduckgo_search":
+		duckduckgo_search.BuildDuckDuckGoSearchServer()
+	case "timezone":
+		timezone.BuildTimezoneServer()
+	case "filesystem":
+		filesystem.BuildFileSystemServer()
+	case "youtube_transcript":
+		youtube_transcript.BuildYouTubeTranscriptServer()
+	case "github":
+		github.BuildGitHubServer()
+	case "postgresql":
+		postgresql.BuildPostgreSQLServer()
+	case "everart":
+		everart.BuildEverArtServer()
+	case "sequentialthinking":
+		sequentialthinking.BuildSequentialThinkingServer()
+	case "figma":
+		figma.BuildFigmaServer()
+	case "gdrive":
+		gdrive.BuildGoogleDriveServer()
+	case "git_diff_recorder":
+		git_diff_recorder.BuildMcpServer()
 	default:
 		fmt.Fprintln(os.Stderr, "argument is invalid")
 		os.Exit(1)
 	}
-	mypkg.OutLog("main: built mcp server!")
-
-
-	// var c datetime_calc.DatetimeCalculator
-	// result := c.AddDatetime(2023, 12, 15, 10, 30, 45, 0, 1, 0, 0, 0, 0)
-	// fmt.Print((result))
+	util.OutLog("main: built mcp server!")
 }

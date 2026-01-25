@@ -3,15 +3,17 @@ name: go-test-integration
 on:
   push:
 
-permissions: write-all
+permissions:
+  contents: write
 
 env:
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.23'
   COV_FILE: 'coverage.out'
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[skip ci]') == false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,7 +25,7 @@ jobs:
         run: go version
       - name: Run Test
         run: |
-          go test -v ./... -coverpkg=./mypkg -covermode=count -coverprofile=${{ env.COV_FILE }}
+          go test -v ./... -coverpkg=./... -covermode=count -coverprofile=${{ env.COV_FILE }}
           go tool cover -func=${{ env.COV_FILE }} -o=${{ env.COV_FILE }}
       - name: Go Coverage Badge  # Pass the `coverage.out` output to this action
         uses: tj-actions/coverage-badge-go@v2
@@ -35,4 +37,4 @@ jobs:
           git config --local user.name "GitHub Action"
           git add README.md
           git log -1
-          git diff --cached --quiet || (git commit -m "chore: Updated coverage badge." && git push origin HEAD)
+          git diff --cached --quiet || (git commit -m "chore: Updated coverage badge [skip ci]" && git push origin HEAD)

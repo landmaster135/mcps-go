@@ -1,0 +1,144 @@
+{
+  "mcpServers": {
+    "arithmetic_calculator": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "arith_calc"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "datetime_calculator": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "datetime_calc"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "http_request": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "http_request"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "brave_web_search": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "brave_web_search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "YOUR_BRAVE_API_KEY"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "brave_web_search"
+      ]
+    },
+    "get-current-timezone": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "timezone"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "filesystem": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "filesystem"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "get_youtube_transcript": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "youtube_transcript"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "github": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_PAT"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "postgresql": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "postgresql"
+      ],
+      "env": {
+        "POSTGRESQL_DATABASE_URL": "YOUR_URL"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "everart": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "everart"
+      ],
+      "env": {
+        "EVERART_API_KEY": "YOUR_KEY"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "sequentialthinking": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "sequentialthinking"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "figma": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "figma"
+      ],
+      "env": {
+        "FIGMA_API_KEY": "YOUR_KEY"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "google_drive": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "gdrive"
+      ],
+      "env": {
+        "GDRIVE_CREDENTIALS_PATH": "YOUR_PATH"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "duckduckgo_instant_search": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "duckduckgo_search"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    },
+    "git_commit_message_generator": {
+      "command": "/home/user/mcps-go/pkg/bin/linux_amd64/mcps-go",
+      "args": [
+        "git_diff_recorder"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
